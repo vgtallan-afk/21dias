@@ -182,6 +182,7 @@
             let fastingHours = 14; 
             if(objective === 'emagrecer_rapido') fastingHours = 16;
             if(objective === 'saude') fastingHours = 12;
+            if(objective === 'leve') fastingHours = 8;
 
             return { waterTarget: water, fastingHours };
         };
@@ -642,7 +643,7 @@
                                 <h1 className="text-3xl font-bold mb-4">Qual seu maior foco?</h1>
                                 <p className="text-slate-500 mb-8">Isso define a intensidade do seu protocolo de 21 dias.</p>
                                 <div className="space-y-3 mb-8">
-                                    {[['emagrecer_rapido', '🔥 Emagrecimento Intenso (Jejum 16h)'], ['manutencao', '⚖️ Manter e Tonificar (Jejum 14h)'], ['saude', '✨ Saúde & Energia (Jejum 12h)']].map(([val, label]) => (
+                                    {[['emagrecer_rapido', '🔥 Emagrecimento Intenso (Jejum 16h)'], ['manutencao', '⚖️ Manter e Tonificar (Jejum 14h)'], ['saude', '✨ Saúde & Energia (Jejum 12h)'], ['leve', '🌸 Início Suave (Jejum 8h)']].map(([val, label]) => (
                                         <div key={val} onClick={() => setFormData({...formData, objective: val})}
                                             className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.objective === val ? 'border-brand-rose bg-rose-50 font-bold text-brand-rose' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
                                             {label}
