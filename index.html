@@ -269,6 +269,8 @@
             const [logs, setLogs] = useState({}); 
             const [fasting, setFasting] = useState({ isActive: false, startTime: null });
             const [activeTab, setActiveTab] = useState('diary'); // Diário como tela inicial
+            const [darkMode, setDarkMode] = useState(false);
+            const [showTutorial, setShowTutorial] = useState(false);
 
             useEffect(() => { window.scrollTo(0, 0); }, [activeTab]);
 
@@ -278,15 +280,35 @@
                 const savedLogs = JSON.parse(localStorage.getItem('depro_logs')) || {};
                 const savedFasting = JSON.parse(localStorage.getItem('depro_fasting')) || { isActive: false, startTime: null };
                 const savedEmail = localStorage.getItem('depro_email');
+                const savedDarkMode = localStorage.getItem('depro_darkMode') === 'true';
+                const hasSeenTutorial = localStorage.getItem('depro_tutorial_seen');
 
                 if (savedEmail) setEmailVerified(true);
-                if (savedUser) setUser(savedUser);
+                if (savedUser) {
+                    setUser(savedUser);
+                    // Mostra tutorial na primeira vez que entra na app (após onboarding)
+                    if (!hasSeenTutorial) {
+                        setShowTutorial(true);
+                        localStorage.setItem('depro_tutorial_seen', 'true');
+                    }
+                }
                 setLogs(savedLogs);
                 setFasting(savedFasting);
+                setDarkMode(savedDarkMode);
                 
                 setupPWA();
                 setIsLoaded(true);
             }, []);
+
+            // Aplicar modo dark na página
+            useEffect(() => {
+                if (darkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                localStorage.setItem('depro_darkMode', darkMode);
+            }, [darkMode]);
 
             // Salvar no LocalStorage automaticamente
             useEffect(() => {
@@ -314,37 +336,40 @@
             if (!user) return <OnboardingScreen onComplete={setUser} />;
 
             return (
-                <div className="max-w-md mx-auto relative min-h-screen overflow-x-hidden">
+                <div className={`max-w-md mx-auto relative min-h-screen overflow-x-hidden ${darkMode ? 'dark bg-slate-900' : 'bg-brand-light'}`}>
                     {/* Header Pessoal */}
-                    <header className="px-6 pt-8 pb-4 flex justify-between items-center z-10 relative">
+                    <header className={`px-6 pt-8 pb-4 flex justify-between items-center z-10 relative ${darkMode ? 'bg-slate-800' : ''}`}>
                         <div>
-                            <p className="text-sm font-medium text-slate-500">Jornada 21 Dias ✨</p>
-                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender">
+                            <p className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Jornada 21 Dias ✨</p>
+                            <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender'}`}>
                                 Oi, {user.name.split(' ')[0]}
                             </h1>
                         </div>
-                        <div className="w-12 h-12 rounded-full glass-card flex items-center justify-center shadow-sm text-2xl">
-                            🌸
-                        </div>
+                        <button onClick={() => setDarkMode(!darkMode)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
+                            {darkMode ? '☀️' : '🌙'}
+                        </button>
                     </header>
 
                     {/* Roteamento de Abas */}
-                    <main className="px-6 pb-28">
-                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} />}
-                        {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} />}
-                        {activeTab === 'dash' && <DashboardTab user={user} logs={logs} />}
-                        {activeTab === 'library' && <LibraryTab />}
+                    <main className={`px-6 pb-28 ${darkMode ? 'bg-slate-900' : ''}`}>
+                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} darkMode={darkMode} />}
+                        {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} darkMode={darkMode} />}
+                        {activeTab === 'dash' && <DashboardTab user={user} logs={logs} darkMode={darkMode} />}
+                        {activeTab === 'library' && <LibraryTab darkMode={darkMode} />}
                     </main>
 
                     {/* Navegação Inferior (App-like) */}
-                    <nav className="fixed bottom-0 left-0 right-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                    <nav className={`fixed bottom-0 left-0 right-0 w-full pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] ${darkMode ? 'bg-slate-800 border-t border-slate-700' : 'tab-bar-glass'}`}>
                         <div className="max-w-md mx-auto flex justify-around items-center h-16">
-                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} />
-                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} />
-                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} />
-                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} />
+                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} darkMode={darkMode} />
+                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} darkMode={darkMode} />
+                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} darkMode={darkMode} />
+                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} darkMode={darkMode} />
                         </div>
                     </nav>
+
+                    {/* Tutorial Overlay */}
+                    {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} darkMode={darkMode} />}
                 </div>
             );
         }
@@ -352,7 +377,7 @@
         // --- COMPONENTES DAS ABAS ---
 
         // PWA INSTALL STEP (step 2)
-        function PWAInstallStep({ name, onNext, onBack }) {
+        function PWAInstallStep({ name, onNext, onBack, darkMode = false }) {
             const [device, setDevice] = useState(null); // null | 'iphone' | 'android'
 
             useEffect(() => { window.scrollTo(0, 0); }, [device]);
@@ -639,7 +664,7 @@
         }
 
         // 2. TELA DIÁRIO (O Planner de 21 Dias Oficial)
-        function DiaryTab({ user, logs, setLogs }) {
+        function DiaryTab({ user, logs, setLogs, darkMode }) {
             const today = getTodayStr();
             const log = logs[today] || { 
                 weight: '', 
@@ -826,7 +851,7 @@
         }
 
         // 3. TELA TIMER (Jejum Intermitente Ativo)
-        function TimerTab({ user, fasting, setFasting, notify }) {
+        function TimerTab({ user, fasting, setFasting, notify, darkMode }) {
             const [now, setNow] = useState(Date.now());
 
             useEffect(() => {
@@ -862,16 +887,16 @@
             const stage = fasting.isActive ? getFastingStage(elapsedHoursNum) : null;
 
             return (
-                <div className="animate-slide-up space-y-6">
-                    <div className="glass-card p-6 rounded-3xl text-center relative overflow-hidden mt-2">
+                <div className={`animate-slide-up space-y-6 ${darkMode ? 'text-white' : ''}`}>
+                    <div className={`${darkMode ? 'bg-slate-800 border border-slate-700' : 'glass-card'} p-6 rounded-3xl text-center relative overflow-hidden mt-2`}>
                         <div className="absolute top-0 right-0 p-4 opacity-10"><Icon.Clock /></div>
-                        <h2 className="font-bold text-slate-700 mb-1">Seu Protocolo</h2>
+                        <h2 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} mb-1`}>Seu Protocolo</h2>
                         <p className="text-sm text-brand-rose font-semibold mb-8">{targetHours} Horas • Queima Acelerada</p>
 
                         <div className="relative w-64 h-64 mx-auto mb-10 flex items-center justify-center">
                             {/* Anel de Progresso SVG */}
                             <svg className="absolute w-full h-full drop-shadow-sm" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="45" fill="none" className="stroke-slate-100" strokeWidth="3"></circle>
+                                <circle cx="50" cy="50" r="45" fill="none" className={darkMode ? 'stroke-slate-700' : 'stroke-slate-100'} strokeWidth="3"></circle>
                                 <circle cx="50" cy="50" r="45" fill="none" className="stroke-brand-rose progress-ring__circle" 
                                     strokeWidth="5" strokeLinecap="round" strokeDasharray="283" 
                                     strokeDashoffset={283 - (283 * progress) / 100}></circle>
@@ -879,16 +904,16 @@
                             <div className="z-10 flex flex-col items-center">
                                 {fasting.isActive ? (
                                     <>
-                                        <span className="text-5xl font-extrabold tracking-tighter text-slate-800">{formatTime(elapsedMs)}</span>
+                                        <span className={`text-5xl font-extrabold tracking-tighter ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{formatTime(elapsedMs)}</span>
                                         {progress >= 100 ? 
                                             <span className="text-sm font-bold text-emerald-500 mt-3 bg-emerald-50 px-3 py-1 rounded-full animate-pulse shadow-sm">Meta Atingida! 🎉</span> :
-                                            <span className="text-sm text-slate-500 mt-3 font-medium">Faltam {Math.max(0, targetHours - elapsedHoursNum).toFixed(1)}h</span>
+                                            <span className={`text-sm mt-3 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Faltam {Math.max(0, targetHours - elapsedHoursNum).toFixed(1)}h</span>
                                         }
                                     </>
                                 ) : (
                                     <>
                                         <span className="text-5xl mb-3">🌙</span>
-                                        <span className="text-sm font-medium text-slate-500 px-4">Pronta para iniciar a autofagia celular?</span>
+                                        <span className={`text-sm font-medium px-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Pronta para iniciar a autofagia celular?</span>
                                     </>
                                 )}
                             </div>
@@ -896,7 +921,7 @@
 
                         <button onClick={toggleFasting} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 ${
                             fasting.isActive 
-                                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                                ? darkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 : 'bg-gradient-to-r from-brand-rose to-brand-lavender text-white shadow-lg shadow-brand-rose/30'
                         }`}>
                             {fasting.isActive ? 'Quebrar Jejum' : 'Iniciar Jejum Agora'}
@@ -930,11 +955,40 @@
                         </div>
                     )}
 
+                    {/* Seção de Estágios do Jejum - Detalhado */}
+                    <div className={`${darkMode ? 'bg-slate-800 border border-slate-700 rounded-3xl' : 'glass-card rounded-3xl'} p-6`}>
+                        <h3 className={`text-lg font-bold mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>📊 Estágios do Jejum</h3>
+                        <div className="space-y-3">
+                            {[
+                                { hours: '0-2h', name: '🍽️ Fase de Digestão', desc: 'Corpo digere última refeição. Glicose como energia principal.', icon: '🍽️' },
+                                { hours: '2-4h', name: '⚡ Pós-Absorção', desc: 'Transição. Insulina diminui. Glicose em estoque reduz.', icon: '⚡' },
+                                { hours: '4-8h', name: '🔥 Queima de Glicogênio', desc: 'Fígado libera glicose. Queima de gordura aumenta bastante.', icon: '🔥' },
+                                { hours: '8-12h', name: '🧠 Transição para Cetose', desc: 'Glicogênio se esgota. Produção de cetonas começa (combustível novo).', icon: '🧠' },
+                                { hours: '12-16h', name: '✨ Cetose Completa', desc: 'Máxima queima de gordura! Autofagia e limpeza celular intensas.', icon: '✨' },
+                                { hours: '16h+', name: '🌟 Jejum Profundo', desc: 'Estado de rejuvenescimento. Autofagia no pico máximo.', icon: '🌟' }
+                            ].map((s, idx) => (
+                                <div key={idx} className={`p-4 rounded-2xl border transition-all ${
+                                    fasting.isActive && elapsedHoursNum >= (idx === 0 ? 0 : idx === 1 ? 2 : idx === 2 ? 4 : idx === 3 ? 8 : idx === 4 ? 12 : 16)
+                                        ? darkMode ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-cyan-100 border-cyan-300'
+                                        : darkMode ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-200'
+                                }`}>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className={`text-[11px] font-bold uppercase tracking-wide mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{s.hours}</p>
+                                            <p className={`font-semibold text-sm ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{s.name}</p>
+                                            <p className={`text-[12px] mt-1 leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{s.desc}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Cards de Dicas */}
                     <div className="grid grid-cols-1 gap-3">
-                        <div className="bg-white/60 rounded-2xl p-4 flex gap-4 items-center border border-slate-100 shadow-sm">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">💧</div>
-                            <p className="text-[13px] text-slate-600 leading-snug">
+                        <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white/60 border-slate-100'} rounded-2xl p-4 flex gap-4 items-center border shadow-sm`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-500'}`}>💧</div>
+                            <p className={`text-[13px] leading-snug ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                                 <b>Pode no jejum:</b> Água, café puro e chás sem adoçante. Eles ajudam a driblar a fome!
                             </p>
                         </div>
@@ -944,7 +998,7 @@
         }
 
         // 4. TELA DASHBOARD (Métricas e Evolução)
-        function DashboardTab({ user, logs }) {
+        function DashboardTab({ user, logs, darkMode }) {
             const chartData = useMemo(() => {
                 const data = [];
                 const start = new Date(user.startDate);
@@ -1066,7 +1120,8 @@
         };
 
         // 5. TELA BIBLIOTECA (Materiais In-App)
-        function LibraryTab() {
+        function LibraryTab(props) {
+            const { darkMode } = props || { darkMode: false };
             const BOOKS = [
                 { id: '1wuHPWnwZaBy1bPzv7OXcfTt6BXHJ4mK7', title: "Coma Certo, Emagreça Rápido", subtitle: "Guia Completo de Alimentação", color: "from-emerald-400 to-teal-500", emoji: "🥗" },
                 { id: '1MHawTQNQvDlICYY4vXKfkhpN-zDDFGeg', title: "Desinche em 7 Dias", subtitle: "Estratégia Seca Barriga", color: "from-blue-400 to-indigo-500", emoji: "💧" },
@@ -1164,70 +1219,95 @@
                 }
             };
 
+            const [showPWAInstall, setShowPWAInstall] = useState(false);
+
             return (
-                <div className="animate-slide-up space-y-6">
+                <div className={`animate-slide-up space-y-6 ${darkMode ? 'text-white' : ''}`}>
                     <div>
-                        <h2 className="text-xl font-bold px-1 mb-1">Biblioteca VIP</h2>
-                        <p className="text-sm text-slate-500 px-1 mb-4">Seus materiais exclusivos. Baixe uma vez e acesse sempre, mesmo offline.</p>
+                        <h2 className={`text-xl font-bold px-1 mb-1 ${darkMode ? 'text-white' : ''}`}>Biblioteca VIP</h2>
+                        <p className={`text-sm px-1 mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Seus materiais exclusivos. Baixe uma vez e acesse sempre, mesmo offline.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3">
-                        {BOOKS.map((book) => {
-                            const status = statuses[book.id] || 'idle';
-                            const pct = progress[book.id] || 0;
-                            const isCached = status === 'cached';
-                            const isDownloading = status === 'downloading';
-                            const isOpening = status === 'opening';
+                    {/* Botão PWA Install (só mostra no segundo acesso) */}
+                    {!showPWAInstall && (
+                        <button onClick={() => setShowPWAInstall(true)} 
+                            className={`w-full p-4 rounded-2xl border-2 border-dashed transition-all ${darkMode ? 'border-slate-600 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-50'}`}>
+                            <p className={`text-sm font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>📱 Instalar App (Outra forma)</p>
+                            <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>Veja as instruções para instalar como app nativo</p>
+                        </button>
+                    )}
 
-                            return (
-                                <div key={book.id} onClick={() => handleOpen(book)}
-                                    className={`bg-white p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border transition-all active:scale-95
-                                        ${isCached ? 'border-emerald-100 bg-emerald-50/30' : 'border-slate-100'}
-                                        ${isDownloading ? 'opacity-90 cursor-wait' : ''}`}>
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner shrink-0`}>
-                                            {book.emoji}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h3 className="font-bold text-slate-800 text-sm leading-snug">{book.title}</h3>
-                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{book.subtitle}</p>
-                                            {isDownloading && (
-                                                <div className="mt-2">
-                                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-gradient-to-r from-brand-rose to-brand-lavender rounded-full transition-all duration-300"
-                                                            style={{ width: pct > 0 ? `${pct}%` : '30%', animation: pct === 0 ? 'pulse 1.5s infinite' : 'none' }}></div>
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-400 mt-1">{pct > 0 ? `${pct}% baixado...` : 'Baixando...'}</p>
+                    {showPWAInstall && (
+                        <div className={`${darkMode ? 'bg-slate-800 border border-slate-700' : 'glass-card'} p-6 rounded-3xl`}>
+                            <button onClick={() => setShowPWAInstall(false)} 
+                                className={`text-sm font-bold mb-4 ${darkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-600 hover:text-slate-800'}`}>
+                                ← Voltar para biblioteca
+                            </button>
+                            <PWAInstallStep name="Você" onNext={() => setShowPWAInstall(false)} onBack={() => setShowPWAInstall(false)} darkMode={darkMode} />
+                        </div>
+                    )}
+
+                    {!showPWAInstall && (
+                        <>
+                            <div className="grid grid-cols-1 gap-3">
+                                {BOOKS.map((book) => {
+                                    const status = statuses[book.id] || 'idle';
+                                    const pct = progress[book.id] || 0;
+                                    const isCached = status === 'cached';
+                                    const isDownloading = status === 'downloading';
+                                    const isOpening = status === 'opening';
+
+                                    return (
+                                        <div key={book.id} onClick={() => handleOpen(book)}
+                                            className={`p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border transition-all active:scale-95
+                                                ${isCached ? darkMode ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-emerald-100 bg-emerald-50/30' : darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}
+                                                ${isDownloading ? 'opacity-90 cursor-wait' : ''}`}>
+                                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                                                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner shrink-0`}>
+                                                    {book.emoji}
                                                 </div>
-                                            )}
-                                            {isCached && !isDownloading && (
-                                                <p className="text-[10px] text-emerald-500 font-semibold mt-1">✓ Salvo no dispositivo</p>
-                                            )}
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className={`font-bold text-sm leading-snug ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{book.title}</h3>
+                                                    <p className={`text-xs font-medium mt-0.5 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>{book.subtitle}</p>
+                                                    {isDownloading && (
+                                                        <div className="mt-2">
+                                                            <div className={`h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                                                                <div className="h-full bg-gradient-to-r from-brand-rose to-brand-lavender rounded-full transition-all duration-300"
+                                                                    style={{ width: pct > 0 ? `${pct}%` : '30%', animation: pct === 0 ? 'pulse 1.5s infinite' : 'none' }}></div>
+                                                            </div>
+                                                            <p className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{pct > 0 ? `${pct}% baixado...` : 'Baixando...'}</p>
+                                                        </div>
+                                                    )}
+                                                    {isCached && !isDownloading && (
+                                                        <p className={`text-[10px] font-semibold mt-1 ${darkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>✓ Salvo no dispositivo</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ml-2 transition-colors
+                                                ${isCached ? darkMode ? 'bg-emerald-500/30 text-emerald-400' : 'bg-emerald-100 text-emerald-600' : darkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-50 text-slate-400'}
+                                                ${isOpening ? 'bg-brand-rose/10 text-brand-rose' : ''}`}>
+                                                {isDownloading ? (
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-brand-rose">
+                                                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                                    </svg>
+                                                ) : isCached ? (
+                                                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="20 6 9 17 4 12"/>
+                                                    </svg>
+                                                ) : (
+                                                    <Icon.Download />
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ml-2 transition-colors
-                                        ${isCached ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-400'}
-                                        ${isOpening ? 'bg-brand-rose/10 text-brand-rose' : ''}`}>
-                                        {isDownloading ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-brand-rose">
-                                                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                                            </svg>
-                                        ) : isCached ? (
-                                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        ) : (
-                                            <Icon.Download />
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                    );
+                                })}
+                            </div>
 
-                    <p className="text-center text-xs text-slate-400 pb-2">
-                        📁 PDFs salvos ficam disponíveis mesmo sem internet
-                    </p>
+                            <p className={`text-center text-xs pb-2 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                📁 PDFs salvos ficam disponíveis mesmo sem internet
+                            </p>
+                        </>
+                    )}
                 </div>
             );
         }
@@ -1265,13 +1345,87 @@
             );
         }
 
-        function TabBtn({ icon, label, active, onClick }) {
+        // Tutorial com Balloons/Tooltips
+        function TutorialOverlay({ onClose, darkMode }) {
+            const [step, setStep] = useState(0);
+            
+            const steps = [
+                {
+                    title: '📓 Aba Diário',
+                    description: 'Registre seu peso, água bebida, escalas de energia/humor/sono e qualquer nota importante do dia. Esses dados geram seu progresso!',
+                    icon: '📝'
+                },
+                {
+                    title: '⏱️ Aba Jejum',
+                    description: 'Inicie seu jejum aqui! Veja em tempo real qual estágio você está (digestão, cetose, etc.) e o que acontece no seu corpo a cada momento.',
+                    icon: '⏰'
+                },
+                {
+                    title: '📊 Aba Evolução',
+                    description: 'Acompanhe seus gráficos de peso, adesão ao jejum, água consumida e suas métricas diárias. Veja seu progresso acontecendo!',
+                    icon: '📈'
+                },
+                {
+                    title: '📚 Aba Biblioteca',
+                    description: 'Acesse seus materiais VIP exclusivos. Baixe PDFs uma vez e leia offline sempre que quiser. Fácil e sem internet necessária!',
+                    icon: '📖'
+                },
+                {
+                    title: '🌙 Modo Escuro',
+                    description: 'Use o botão no topo para alternar entre tema claro e escuro. Perfeito para usar à noite sem prejudicar seus olhos!',
+                    icon: '🌓'
+                }
+            ];
+
+            const handleNext = () => {
+                if (step < steps.length - 1) {
+                    setStep(step + 1);
+                } else {
+                    onClose();
+                }
+            };
+
             return (
-                <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 transition-colors ${active ? 'text-brand-rose' : 'text-slate-400 hover:text-slate-600'}`}>
+                <div className="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-black/30 p-4">
+                    <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-scale-in ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
+                        <div className="text-center mb-6">
+                            <div className="text-6xl mb-4">{steps[step].icon}</div>
+                            <h2 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-900'}`}>{steps[step].title}</h2>
+                            <p className={`text-[13px] leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                                {steps[step].description}
+                            </p>
+                        </div>
+
+                        <div className="flex justify-center gap-2 mb-6">
+                            {steps.map((_, idx) => (
+                                <div key={idx} className={`h-2 rounded-full transition-all ${idx <= step ? 'bg-brand-rose w-6' : 'bg-slate-300 w-2'}`}></div>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-3">
+                            {step > 0 && (
+                                <button onClick={() => setStep(step - 1)} 
+                                    className={`flex-1 py-3 rounded-xl font-bold transition-all ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                                    Anterior
+                                </button>
+                            )}
+                            <button onClick={handleNext} 
+                                className="flex-1 py-3 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
+                                {step === steps.length - 1 ? 'Começar!' : 'Próximo'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function TabBtn({ icon, label, active, onClick, darkMode }) {
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 transition-colors ${active ? 'text-brand-rose' : darkMode ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'}`}>
                     <div className={`${active ? 'transform -translate-y-1 scale-110 drop-shadow-md' : ''} transition-all duration-300`}>
                         {icon}
                     </div>
-                    <span className="text-[10px] font-bold mt-1 tracking-wide">{label}</span>
+                    <span className={`text-[10px] font-bold mt-1 tracking-wide ${darkMode && !active ? 'text-slate-500' : ''}`}>{label}</span>
                 </button>
             );
         }
