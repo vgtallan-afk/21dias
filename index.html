@@ -78,9 +78,8 @@
             border-top: 1px solid rgba(226, 232, 240, 0.6);
         }
 
-        ::-webkit-scrollbar { display: none; } /* Oculta scrollbar mantendo funcionalidade */
+        ::-webkit-scrollbar { display: none; }
 
-        /* Inputs Range Customizados */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track {
@@ -94,14 +93,12 @@
         }
         input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
         
-        /* Animação Circular do Timer */
         .progress-ring__circle {
             transition: stroke-dashoffset 0.5s ease-in-out;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
 
-        /* Correção para inputs de tempo */
         input[type="time"]::-webkit-calendar-picker-indicator {
             background: transparent;
             bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
@@ -115,7 +112,7 @@
         const { useState, useEffect, useMemo, useRef } = React;
         const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid } = window.Recharts;
 
-        // --- SVGs Inline (Zero dependências externas, robusto para offline) ---
+        // --- SVGs Inline ---
         const Icon = {
             Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
             Book: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
@@ -127,86 +124,111 @@
             Target: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
         };
 
-        // --- INJEÇÃO DE PWA DINÂMICA (App Instalável e Offline num único HTML) ---
+        // --- PWA Setup ---
         function setupPWA() {
-            // 1. Manifest para "Add to Homescreen"
             const manifest = {
                 name: "Diário de Evolução",
                 short_name: "Evolução",
                 start_url: ".",
                 display: "standalone",
-                background_color: "#FDF2F8",
+                background_color: "#fdf2f8",
                 theme_color: "#F472B6",
-                icons: [{ src: "https://via.placeholder.com/192x192.png?text=DE", sizes: "192x192", type: "image/png" }]
+                scope: "/",
+                icons: [
+                    { src: "https://via.placeholder.com/192x192.png?text=DE", sizes: "192x192", type: "image/png", purpose: "any" },
+                    { src: "https://via.placeholder.com/512x512.png?text=DE", sizes: "512x512", type: "image/png", purpose: "any" }
+                ]
             };
-            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-            document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
 
-            // 2. Service Worker Inline para Cache Offline Verdadeiro
-            const swCode = `
-                const CACHE_NAME = 'depro-v2';
-                self.addEventListener('install', e => {
-                    self.skipWaiting();
-                    // Como é um single file, fazer cache da raiz garante funcionamento offline
-                    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll([location.pathname]))); 
-                });
-                self.addEventListener('fetch', e => {
-                    e.respondWith(
-                        caches.match(e.request).then(res => res || fetch(e.request).catch(() => caches.match(location.pathname)))
-                    );
-                });
-            `;
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            link.href = URL.createObjectURL(blob);
+            document.head.appendChild(link);
+
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(console.warn);
+                const swCode = `
+                    const CACHE = 'evolucao-v1';
+                    const URLS = ['/', '/index.html'];
+                    self.addEventListener('install', e => {
+                        e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)));
+                    });
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
             }
 
-            // 3. Permissão de Notificação Push
-            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+            if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
         }
 
-        // --- UTILS & LÓGICA DE NEGÓCIO ---
-        const getTodayStr = () => {
-            const date = new Date();
-            return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        // --- IndexedDB para armazenar PDFs ---
+        const IDB = {
+            db: null,
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open('DiarioEvolucao', 1);
+                    req.onerror = () => reject();
+                    req.onsuccess = () => { this.db = req.result; resolve(); };
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('pdfs')) db.createObjectStore('pdfs');
+                    };
+                });
+            },
+            async get(key) {
+                if (!this.db) await this.init();
+                return new Promise((resolve) => {
+                    const req = this.db.transaction('pdfs').objectStore('pdfs').get(key);
+                    req.onsuccess = () => resolve(req.result);
+                });
+            },
+            async put(key, value) {
+                if (!this.db) await this.init();
+                return new Promise((resolve) => {
+                    const req = this.db.transaction('pdfs', 'readwrite').objectStore('pdfs').put(value, key);
+                    req.onsuccess = () => resolve(true);
+                });
+            }
         };
 
-        const calculateTargets = (weight, height, age, objective) => {
-            const w = parseFloat(weight);
-            // Meta de Água Personalizada: 35ml por kg de peso
-            const water = Math.round(w * 35);
-            
-            // Protocolo de Jejum Intermitente Personalizado
-            let fastingHours = 14; 
-            if(objective === 'emagrecer_rapido') fastingHours = 16;
-            if(objective === 'saude') fastingHours = 12;
+        // --- Onboarding Screen ---
+        function OnboardingScreen({ onComplete }) {
+            const [step, setStep] = useState(0);
+            const [name, setName] = useState('');
+            const [age, setAge] = useState('');
 
-            return { waterTarget: water, fastingHours };
-        };
-
-        // --- EMAIL GATE ---
-        function EmailGateScreen({ onComplete }) {
-            const [email, setEmail] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [error, setError] = useState('');
-
-            useEffect(() => { window.scrollTo(0, 0); }, []);
-
-            const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-
-            const handleSubmit = () => {
-                if (!isValidEmail(email)) {
-                    setError('Digite um e-mail válido para continuar.');
-                    return;
+            const steps = [
+                {
+                    title: "Bem-vinda ao Diário de Evolução",
+                    desc: "Seu companheiro de jornada para uma vida mais consciente e equilibrada",
+                    icon: "🌸",
+                    action: () => setStep(1)
+                },
+                {
+                    title: "Como você se chama?",
+                    desc: "Vamos personalizar sua experiência com seu nome",
+                    icon: "👋",
+                    input: { type: 'text', placeholder: 'Seu nome...', value: name, onChange: setName },
+                    action: () => name && setStep(2),
+                    disabled: !name
+                },
+                {
+                    title: "Quantos anos você tem?",
+                    desc: "Isso nos ajuda a personalizar as dicas e conteúdos",
+                    icon: "🎂",
+                    input: { type: 'number', placeholder: 'Sua idade...', value: age, onChange: setAge, min: 18, max: 120 },
+                    action: () => age && onComplete({ name, age: parseInt(age) }),
+                    disabled: !age
                 }
-                setLoading(true);
-                // Simula verificação (1.5s) para dar sensação de login real
-                setTimeout(() => {
-                    onComplete(email.toLowerCase().trim());
-                }, 1500);
-            };
+            ];
+
+            const current = steps[step];
 
             return (
                 <div className="min-h-screen flex flex-col justify-center px-8 bg-white relative overflow-hidden animate-fade-in">
@@ -216,876 +238,439 @@
                     <div className="z-10 w-full max-w-sm mx-auto">
                         <div className="text-center mb-10">
                             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-rose to-brand-lavender flex items-center justify-center text-4xl mx-auto mb-5 shadow-lg shadow-brand-rose/30">
-                                🌸
+                                {current.icon}
                             </div>
-                            <h1 className="text-2xl font-bold text-slate-800 mb-2">Bem-vinda ao Plano 21 Dias</h1>
-                            <p className="text-slate-500 text-sm leading-relaxed">
-                                Para acessar seu conteúdo exclusivo, confirme o e-mail usado na sua compra.
-                            </p>
+                            <h1 className="text-2xl font-bold text-slate-800 mb-2">{current.title}</h1>
+                            <p className="text-slate-500 text-sm leading-relaxed">{current.desc}</p>
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">E-mail da compra</label>
-                                <input
-                                    type="email"
-                                    placeholder="seu@email.com"
-                                    value={email}
-                                    onChange={e => { setEmail(e.target.value); setError(''); }}
-                                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                                    className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none text-base transition-colors"
-                                    disabled={loading}
-                                />
-                                {error && <p className="text-xs text-red-500 mt-2 font-medium">{error}</p>}
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={!email || loading}
-                                className="w-full py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2">
-                                {loading ? (
-                                    <>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                                        Verificando acesso...
-                                    </>
-                                ) : 'Acessar meu conteúdo →'}
-                            </button>
-                        </div>
-
-                        <p className="text-center text-xs text-slate-400 mt-6 leading-relaxed">
-                            🔒 Acesso exclusivo para alunas.<br/>Este conteúdo é intransferível e protegido.
-                        </p>
-                    </div>
-                </div>
-            );
-        }
-
-        // --- MAIN APP ---
-        function App() {
-            const [isLoaded, setIsLoaded] = useState(false);
-            const [emailVerified, setEmailVerified] = useState(false);
-            const [user, setUser] = useState(null); 
-            const [logs, setLogs] = useState({}); 
-            const [fasting, setFasting] = useState({ isActive: false, startTime: null });
-            const [activeTab, setActiveTab] = useState('diary'); // Diário como tela inicial
-
-            useEffect(() => { window.scrollTo(0, 0); }, [activeTab]);
-
-            // Hydration do LocalStorage
-            useEffect(() => {
-                const savedUser = JSON.parse(localStorage.getItem('depro_user'));
-                const savedLogs = JSON.parse(localStorage.getItem('depro_logs')) || {};
-                const savedFasting = JSON.parse(localStorage.getItem('depro_fasting')) || { isActive: false, startTime: null };
-                const savedEmail = localStorage.getItem('depro_email');
-
-                if (savedEmail) setEmailVerified(true);
-                if (savedUser) setUser(savedUser);
-                setLogs(savedLogs);
-                setFasting(savedFasting);
-                
-                setupPWA();
-                setIsLoaded(true);
-            }, []);
-
-            // Salvar no LocalStorage automaticamente
-            useEffect(() => {
-                if (isLoaded) {
-                    if (user) localStorage.setItem('depro_user', JSON.stringify(user));
-                    localStorage.setItem('depro_logs', JSON.stringify(logs));
-                    localStorage.setItem('depro_fasting', JSON.stringify(fasting));
-                }
-            }, [user, logs, fasting, isLoaded]);
-
-            // Sistema de Notificações
-            const notify = (title, body) => {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification(title, { body, icon: "https://via.placeholder.com/192x192.png?text=DE" });
-                }
-            };
-
-            const handleEmailVerified = (email) => {
-                localStorage.setItem('depro_email', email);
-                setEmailVerified(true);
-            };
-
-            if (!isLoaded) return null;
-            if (!emailVerified) return <EmailGateScreen onComplete={handleEmailVerified} />;
-            if (!user) return <OnboardingScreen onComplete={setUser} />;
-
-            return (
-                <div className="max-w-md mx-auto relative min-h-screen overflow-x-hidden">
-                    {/* Header Pessoal */}
-                    <header className="px-6 pt-8 pb-4 flex justify-between items-center z-10 relative">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Jornada 21 Dias ✨</p>
-                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender">
-                                Oi, {user.name.split(' ')[0]}
-                            </h1>
-                        </div>
-                        <div className="w-12 h-12 rounded-full glass-card flex items-center justify-center shadow-sm text-2xl">
-                            🌸
-                        </div>
-                    </header>
-
-                    {/* Roteamento de Abas */}
-                    <main className="px-6 pb-28">
-                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} />}
-                        {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} />}
-                        {activeTab === 'dash' && <DashboardTab user={user} logs={logs} />}
-                        {activeTab === 'library' && <LibraryTab />}
-                    </main>
-
-                    {/* Navegação Inferior (App-like) */}
-                    <nav className="fixed bottom-0 left-0 right-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                        <div className="max-w-md mx-auto flex justify-around items-center h-16">
-                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} />
-                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} />
-                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} />
-                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} />
-                        </div>
-                    </nav>
-                </div>
-            );
-        }
-
-        // --- COMPONENTES DAS ABAS ---
-
-        // PWA INSTALL STEP (step 2)
-        function PWAInstallStep({ name, onNext, onBack }) {
-            const [device, setDevice] = useState(null); // null | 'iphone' | 'android'
-
-            useEffect(() => { window.scrollTo(0, 0); }, [device]);
-
-            const iPhoneSteps = [
-                {
-                    num: 1,
-                    title: "Abra no Safari ou Chrome",
-                    desc: "Funciona tanto pelo Safari quanto pelo Chrome no iPhone. Se estiver em outro navegador, troque para um dos dois.",
-                    icon: "🧭",
-                    detail: "Safari = ícone de bússola azul. Chrome = ícone colorido de círculo. Os dois funcionam!"
-                },
-                {
-                    num: 2,
-                    title: 'Toque no ícone de Compartilhar ↑',
-                    desc: 'No Safari: ícone de compartilhar fica na barra de baixo, no centro — uma caixinha com seta pra cima ↑. No Chrome: toque nos três pontinhos (...) no canto inferior direito.',
-                    icon: "📤",
-                    detail: "Se a barra sumiu, role a página pra cima que ela aparece de novo."
-                },
-                {
-                    num: 3,
-                    title: '"Adicionar à Tela de Início"',
-                    desc: 'Role o menu que abriu pra baixo até encontrar a opção "Adicionar à Tela de Início" e toque nela.',
-                    icon: "➕",
-                    detail: 'No Chrome, pode aparecer também como "Adicionar à tela inicial". É a mesma coisa.'
-                },
-                {
-                    num: 4,
-                    title: "Confirme e toque em Adicionar",
-                    desc: 'Uma tela vai aparecer com o nome do app. Não precisa mudar nada — só toque em "Adicionar" no canto superior direito.',
-                    icon: "✅",
-                    detail: "Pronto! O ícone do app vai aparecer na sua tela inicial como um aplicativo de verdade."
-                }
-            ];
-
-            const androidSteps = [
-                {
-                    num: 1,
-                    title: "Abra no Chrome",
-                    desc: "Este app funciona melhor pelo Google Chrome. Se não tiver, baixe gratuitamente na Play Store antes de continuar.",
-                    icon: "🌐",
-                    detail: "O Chrome é o navegador padrão da maioria dos Androids — ícone colorido de círculo."
-                },
-                {
-                    num: 2,
-                    title: "Toque nos três pontinhos ⋮",
-                    desc: 'No canto superior direito da tela, toque nos três pontinhos verticais (⋮) para abrir o menu.',
-                    icon: "⋮",
-                    detail: "Fica bem no topo, do lado direito da barra de endereço."
-                },
-                {
-                    num: 3,
-                    title: '"Adicionar à tela inicial"',
-                    desc: 'No menu que abriu, procure a opção "Instalar aplicativo" ou "Adicionar à tela inicial" e toque nela.',
-                    icon: "📲",
-                    detail: 'Dependendo da versão do Chrome, pode aparecer como "Instalar app" ou mostrar um banner automático na base da tela.'
-                },
-                {
-                    num: 4,
-                    title: 'Toque em "Instalar" para confirmar',
-                    desc: 'Uma janela vai aparecer perguntando se quer instalar. Toque em "Instalar" para confirmar.',
-                    icon: "✅",
-                    detail: "O app vai aparecer na sua tela inicial e na gaveta de aplicativos como um app normal!"
-                }
-            ];
-
-            const steps = device === 'iphone' ? iPhoneSteps : androidSteps;
-
-            return (
-                <div className="animate-slide-up">
-                    {!device ? (
-                        <>
-                            <div className="text-center mb-6">
-                                <div className="text-5xl mb-4">📲</div>
-                                <h1 className="text-2xl font-bold mb-3">
-                                    {name.split(' ')[0]}, instala o app no seu celular!
-                                </h1>
-                                <p className="text-slate-500 text-sm leading-relaxed">
-                                    Assim você acessa o app direto da tela inicial, igual um aplicativo de verdade — sem precisar abrir o navegador toda vez.
-                                </p>
-                            </div>
-
-                            <div className="glass-card rounded-2xl p-4 mb-6 space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xl">⚡</span>
-                                    <div>
-                                        <p className="font-semibold text-sm text-slate-800">Acesso imediato</p>
-                                        <p className="text-xs text-slate-500">Um toque e o app abre na hora, sem navegar.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xl">🔒</span>
-                                    <div>
-                                        <p className="font-semibold text-sm text-slate-800">Tela cheia, sem distrações</p>
-                                        <p className="text-xs text-slate-500">Abre em modo app — sem barra de endereços.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xl">📶</span>
-                                    <div>
-                                        <p className="font-semibold text-sm text-slate-800">Funciona offline</p>
-                                        <p className="text-xs text-slate-500">Seu diário disponível mesmo sem internet.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p className="text-center text-sm font-semibold text-slate-700 mb-3">Qual é o seu celular?</p>
-
-                            <div className="grid grid-cols-2 gap-3 mb-5">
-                                <button type="button" onClick={() => setDevice('iphone')}
-                                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-slate-100 bg-white active:scale-95 transition-all hover:border-brand-rose hover:bg-rose-50 shadow-sm">
-                                    <span className="text-4xl">🍎</span>
-                                    <span className="font-bold text-slate-800 text-sm">iPhone</span>
-                                    <span className="text-xs text-slate-400">iOS / Safari</span>
-                                </button>
-                                <button type="button" onClick={() => setDevice('android')}
-                                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-slate-100 bg-white active:scale-95 transition-all hover:border-brand-rose hover:bg-rose-50 shadow-sm">
-                                    <span className="text-4xl">🤖</span>
-                                    <span className="font-bold text-slate-800 text-sm">Android</span>
-                                    <span className="text-xs text-slate-400">Chrome</span>
-                                </button>
-                            </div>
-
-                            <button type="button" onClick={onNext}
-                                className="w-full py-3 text-slate-400 text-sm font-medium active:scale-95 transition-all">
-                                Pular por agora →
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-3 mb-5">
-                                <button type="button" onClick={() => setDevice(null)}
-                                    className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95">
-                                    ←
-                                </button>
-                                <div>
-                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Passo a passo</p>
-                                    <h2 className="text-lg font-bold">{device === 'iphone' ? '🍎 iPhone (Safari)' : '🤖 Android (Chrome)'}</h2>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 mb-6">
-                                {steps.map((s) => (
-                                    <div key={s.num} className="glass-card rounded-2xl p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-rose to-brand-lavender flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
-                                                {s.num}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-lg">{s.icon}</span>
-                                                    <p className="font-bold text-sm text-slate-800">{s.title}</p>
-                                                </div>
-                                                <p className="text-sm text-slate-600 leading-relaxed mb-1">{s.desc}</p>
-                                                <p className="text-xs text-slate-400 italic">{s.detail}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="bg-gradient-to-r from-brand-rose/10 to-brand-lavender/10 border border-brand-rose/20 rounded-2xl p-4 mb-5">
-                                <p className="text-sm text-slate-700 font-medium text-center">
-                                    🎉 Depois de instalar, abra o app pela tela inicial e continue de onde parou!
-                                </p>
-                            </div>
-
-                            <button type="button" onClick={onNext}
-                                className="w-full py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 active:scale-95 transition-all">
-                                Já instalei! Continuar →
-                            </button>
-                            <button type="button" onClick={onNext}
-                                className="w-full py-3 text-slate-400 text-sm font-medium active:scale-95 transition-all mt-1">
-                                Pular por agora
-                            </button>
-                        </>
-                    )}
-                </div>
-            );
-        }
-
-        // 1. TELA DE ONBOARDING (Quiz Rápido)
-        function OnboardingScreen({ onComplete }) {
-            const [step, setStep] = useState(1);
-            const [formData, setFormData] = useState({ name: '', age: '', weight: '', height: '', objective: 'emagrecer_rapido' });
-
-            useEffect(() => { window.scrollTo(0, 0); }, [step]);
-
-            const next = () => setStep(s => s + 1);
-            
-            const handleFinish = (e) => {
-                e.preventDefault();
-                const targets = calculateTargets(formData.weight, formData.height, formData.age, formData.objective);
-                const finalUser = {
-                    ...formData,
-                    ...targets,
-                    startDate: getTodayStr(),
-                    setupDone: true
-                };
-                onComplete(finalUser);
-            };
-
-            // step 1 = nome, step 2 = PWA install, step 3 = corpo, step 4 = objetivo
-            const progressSteps = [1, 2, 3, 4];
-
-            return (
-                <div className="min-h-screen flex flex-col justify-center px-8 bg-white relative overflow-hidden animate-fade-in">
-                    <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-rose/20 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-brand-lavender/20 rounded-full blur-3xl"></div>
-                    
-                    <form onSubmit={(e) => e.preventDefault()} className="z-10 w-full max-w-sm mx-auto">
-                        <div className="flex gap-2 mb-8">
-                            {progressSteps.map(i => (
-                                <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-brand-rose' : 'bg-slate-100'}`}></div>
-                            ))}
-                        </div>
-
-                        {step === 1 && (
-                            <div className="animate-slide-up">
-                                <h1 className="text-3xl font-bold mb-4">Como devemos te chamar?</h1>
-                                <p className="text-slate-500 mb-8">Vamos criar um espaço seguro e personalizado só seu.</p>
-                                <input type="text" placeholder="Seu nome ou apelido" value={formData.name}
-                                    onChange={e => setFormData({...formData, name: e.target.value})}
-                                    className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none mb-4 text-lg" required />
-                                <button type="button" onClick={next} disabled={!formData.name}
-                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50 transition-all active:scale-95">Continuar</button>
-                            </div>
-                        )}
-
-                        {step === 2 && (
-                            <PWAInstallStep
-                                name={formData.name}
-                                onNext={() => setStep(3)}
-                                onBack={() => setStep(1)}
+                        {current.input && (
+                            <input
+                                type={current.input.type}
+                                placeholder={current.input.placeholder}
+                                value={current.input.value}
+                                onChange={(e) => current.input.onChange(e.target.value)}
+                                min={current.input.min}
+                                max={current.input.max}
+                                onKeyDown={(e) => e.key === 'Enter' && !current.disabled && current.action()}
+                                className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none text-base transition-colors mb-4"
                             />
                         )}
 
-                        {step === 3 && (
-                            <div className="animate-slide-up">
-                                <h1 className="text-3xl font-bold mb-4">Sobre seu corpo</h1>
-                                <p className="text-slate-500 mb-6">Esses dados geram suas <b>metas exatas de água e jejum</b>.</p>
-                                <div className="space-y-4 mb-8">
-                                    <input type="number" placeholder="Idade (anos)" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})}
-                                        className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none" required />
-                                    <div className="flex gap-4">
-                                        <input type="number" step="0.1" placeholder="Peso (kg)" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})}
-                                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" required />
-                                        <input type="number" placeholder="Altura (cm)" value={formData.height} onChange={e => setFormData({...formData, height: e.target.value})}
-                                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" required />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setStep(2)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
-                                    <button type="button" onClick={next} disabled={!formData.age || !formData.weight || !formData.height}
-                                        className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50 transition-all active:scale-95">Continuar</button>
-                                </div>
-                            </div>
+                        <button
+                            onClick={current.action}
+                            disabled={current.disabled}
+                            className="w-full py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 disabled:opacity-50 active:scale-95 transition-all">
+                            {step === steps.length - 1 ? 'Começar minha jornada →' : 'Continuar →'}
+                        </button>
+
+                        {step > 0 && (
+                            <button
+                                onClick={() => setStep(step - 1)}
+                                className="w-full mt-3 py-2 text-slate-600 font-medium hover:text-slate-800">
+                                ← Voltar
+                            </button>
                         )}
 
-                        {step === 4 && (
-                            <div className="animate-slide-up">
-                                <h1 className="text-3xl font-bold mb-4">Qual seu maior foco?</h1>
-                                <p className="text-slate-500 mb-8">Isso define a intensidade do seu protocolo de 21 dias.</p>
-                                <div className="space-y-3 mb-8">
-                                    {[['emagrecer_rapido', '🔥 Emagrecimento Intenso (Jejum 16h)'], ['manutencao', '⚖️ Manter e Tonificar (Jejum 14h)'], ['saude', '✨ Saúde & Energia (Jejum 12h)']].map(([val, label]) => (
-                                        <div key={val} onClick={() => setFormData({...formData, objective: val})}
-                                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.objective === val ? 'border-brand-rose bg-rose-50 font-bold text-brand-rose' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
-                                            {label}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setStep(3)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
-                                    <button type="button" onClick={handleFinish}
-                                        className="flex-1 py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 hover:shadow-xl active:scale-95 transition-all">
-                                        Gerar Plano Personalizado
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </form>
+                        <div className="flex gap-1 mt-6 justify-center">
+                            {steps.map((_, i) => <div key={i} className={`h-1 rounded-full transition-all ${i === step ? 'w-8 bg-brand-rose' : 'w-2 bg-slate-300'}`}></div>)}
+                        </div>
+                    </div>
                 </div>
             );
         }
 
-        // 2. TELA DIÁRIO (O Planner de 21 Dias Oficial)
+        // --- Diary Tab ---
         function DiaryTab({ user, logs, setLogs }) {
-            const today = getTodayStr();
-            const log = logs[today] || { 
-                weight: '', 
-                water: 0, 
-                fastingStart: '', 
-                fastingEnd: '', 
-                scales: { energy: 5, hunger: 5, mood: 5, sleep: 5, bloat: 5 }, 
-                notes: '', 
-                habits: {} 
-            };
+            const today = new Date().toISOString().split('T')[0];
+            const todayLog = logs[today] || { mood: 5, energy: 5, motivation: 5, notes: '', checklist: [] };
 
-            const updateLog = (field, value) => {
-                setLogs(prev => ({ ...prev, [today]: { ...log, [field]: value } }));
+            const handleChange = (field, value) => {
+                setLogs({
+                    ...logs,
+                    [today]: { ...todayLog, [field]: value }
+                });
             };
-
-            const updateScale = (metric, val) => {
-                updateLog('scales', { ...log.scales, [metric]: parseInt(val) });
-            };
-
-            const toggleHabit = (habitId) => {
-                updateLog('habits', { ...log.habits, [habitId]: !log.habits[habitId] });
-            };
-
-            // Cálculo do Dia da Jornada
-            const start = new Date(user.startDate);
-            const current = new Date(today);
-            const diffTime = Math.abs(current - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const journeyDay = Math.min(diffDays, 21); // Trava em 21
 
             return (
                 <div className="animate-slide-up space-y-6">
-                    <div className="flex justify-between items-center px-1">
-                        <h2 className="text-xl font-bold">Resumo Diário</h2>
-                        <span className="bg-brand-rose text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                            Dia {journeyDay} / 21
-                        </span>
+                    <div>
+                        <h2 className="text-xl font-bold px-1">{new Date(today).toLocaleDateString('pt-BR', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+                        <p className="text-sm text-slate-500 px-1">Como você está se sentindo hoje?</p>
                     </div>
 
-                    {/* Bloco 1: Peso e Água */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-card p-4 rounded-2xl">
-                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Peso da Manhã</label>
-                            <div className="flex items-end gap-1">
-                                <input type="number" step="0.1" placeholder="Ex: 68.5" value={log.weight} onChange={e => updateLog('weight', e.target.value)}
-                                    className="w-full text-2xl font-bold bg-transparent border-b-2 border-slate-200 focus:border-brand-rose outline-none pb-1" />
-                                <span className="text-slate-400 font-medium pb-2">kg</span>
-                            </div>
-                        </div>
-                        
-                        <div className="glass-card p-4 rounded-2xl flex flex-col justify-between">
-                            <div>
-                                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Água Diária</label>
-                                <span className="text-[10px] text-brand-rose font-medium">Meta: {(user.waterTarget/1000).toFixed(1)}L</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button onClick={() => updateLog('water', Math.max(0, log.water - 250))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 active:scale-90 transition-transform">-</button>
-                                <div className="flex-1 text-center font-bold text-blue-500 text-lg">{log.water}<span className="text-xs font-normal">ml</span></div>
-                                <button onClick={() => updateLog('water', log.water + 250)} className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 active:scale-90 transition-transform">+</button>
-                            </div>
-                        </div>
+                    <div className="space-y-4">
+                        <SliderRow icon="😊" label="Humor" value={todayLog.mood} onChange={(v) => handleChange('mood', parseInt(v))} />
+                        <SliderRow icon="⚡" label="Energia" value={todayLog.energy} onChange={(v) => handleChange('energy', parseInt(v))} />
+                        <SliderRow icon="💪" label="Motivação" value={todayLog.motivation} onChange={(v) => handleChange('motivation', parseInt(v))} />
                     </div>
 
-                    {/* Bloco 2: Janela de Jejum */}
-                    <div className="glass-card p-5 rounded-3xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-sm">Registro de Jejum</h3>
-                            <span className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-600 font-medium">Meta: {user.fastingHours}h</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Início (Última Refeição)</label>
-                                <input type="time" value={log.fastingStart} onChange={e => updateLog('fastingStart', e.target.value)} 
-                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
-                            </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Fim (Quebra do Jejum)</label>
-                                <input type="time" value={log.fastingEnd} onChange={e => updateLog('fastingEnd', e.target.value)} 
-                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
-                            </div>
-                        </div>
+                    <div className="glass-card p-4 rounded-2xl">
+                        <label className="text-sm font-semibold text-slate-700 mb-2 block">Notas do dia</label>
+                        <textarea
+                            value={todayLog.notes || ''}
+                            onChange={(e) => handleChange('notes', e.target.value)}
+                            placeholder="O que você aprendeu hoje? Como se sentiu?"
+                            className="w-full p-3 rounded-xl bg-white/50 border border-white/30 outline-none text-sm resize-none h-24 focus:border-brand-rose"
+                        />
                     </div>
 
-                    {/* Bloco 3: Check-in de Sensações */}
-                    <div className="glass-card p-5 rounded-3xl">
-                        <h3 className="font-bold mb-4 text-sm">Como o corpo reagiu hoje?</h3>
-                        <div className="space-y-5">
-                            <SliderRow icon="⚡" label="Energia" value={log.scales.energy} onChange={v => updateScale('energy', v)} />
-                            <SliderRow icon="🍽️" label="Fome" value={log.scales.hunger} onChange={v => updateScale('hunger', v)} reverseColor />
-                            <SliderRow icon="😊" label="Humor" value={log.scales.mood} onChange={v => updateScale('mood', v)} />
-                            <SliderRow icon="😴" label="Qualidade do Sono" value={log.scales.sleep} onChange={v => updateScale('sleep', v)} />
-                            <SliderRow icon="🎈" label="Inchaço Abdominal" value={log.scales.bloat} onChange={v => updateScale('bloat', v)} reverseColor />
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3">Checklist do dia</h3>
+                        <div className="space-y-2">
+                            {['Beber 2L de água', 'Meditar por 10min', 'Fazer exercício', 'Dormir cedo'].map((item, i) => (
+                                <CheckItem
+                                    key={i}
+                                    label={item}
+                                    checked={todayLog.checklist?.includes(i) || false}
+                                    onClick={() => {
+                                        const newChecklist = todayLog.checklist?.includes(i)
+                                            ? todayLog.checklist.filter(x => x !== i)
+                                            : [...(todayLog.checklist || []), i];
+                                        handleChange('checklist', newChecklist);
+                                    }}
+                                />
+                            ))}
                         </div>
-                    </div>
-
-                    {/* Bloco 4: Hábitos Diários */}
-                    <div className="glass-card p-5 rounded-3xl">
-                        <h3 className="font-bold mb-3 text-sm">Checklist Inteligente</h3>
-                        <div className="space-y-3">
-                            <CheckItem label={`Cumpri as ${user.fastingHours}h de jejum recomendadas`} checked={log.habits['jejum']} onClick={() => toggleHabit('jejum')} />
-                            <CheckItem label={`Bebi os ${(user.waterTarget/1000).toFixed(1)}L de água da minha meta`} checked={log.habits['agua']} onClick={() => toggleHabit('agua')} />
-                            <CheckItem label="Zero açúcar refinado e doces hoje" checked={log.habits['acucar']} onClick={() => toggleHabit('acucar')} />
-                            <CheckItem label="Fiz pelo menos 20min de movimento" checked={log.habits['treino']} onClick={() => toggleHabit('treino')} />
-                        </div>
-                    </div>
-
-                    {/* Bloco 5: Diário Livre */}
-                    <div className="glass-card p-5 rounded-3xl">
-                        <h3 className="font-bold mb-2 text-sm">Notas e Percepções</h3>
-                        <textarea rows="3" placeholder="Senti mais facilidade hoje? Tive dor de cabeça? Como me sinto com meu corpo?" value={log.notes} onChange={e => updateLog('notes', e.target.value)}
-                            className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-brand-rose resize-none transition-all"></textarea>
                     </div>
                 </div>
             );
         }
 
-        // 3. TELA TIMER (Jejum Intermitente Ativo)
+        // --- TIMER TAB COM ESTÁGIOS DO JEJUM ---
         function TimerTab({ user, fasting, setFasting, notify }) {
-            const [now, setNow] = useState(Date.now());
+            const [time, setTime] = useState(0);
 
             useEffect(() => {
-                let interval;
-                if (fasting.isActive) {
-                    interval = setInterval(() => setNow(Date.now()), 1000);
-                }
+                if (!fasting.isActive) return;
+                
+                const interval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - new Date(fasting.startTime).getTime()) / 1000);
+                    setTime(elapsed);
+                }, 1000);
+
                 return () => clearInterval(interval);
-            }, [fasting.isActive]);
-
-            const elapsedMs = fasting.isActive ? (now - fasting.startTime) : 0;
-            const elapsedHoursNum = elapsedMs / (1000 * 60 * 60);
-            const targetHours = user.fastingHours;
-            const progress = Math.min((elapsedHoursNum / targetHours) * 100, 100);
-
-            const formatTime = (ms) => {
-                let s = Math.floor((ms / 1000) % 60);
-                let m = Math.floor((ms / (1000 * 60)) % 60);
-                let h = Math.floor(ms / (1000 * 60 * 60));
-                return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-            };
+            }, [fasting.isActive, fasting.startTime]);
 
             const toggleFasting = () => {
-                if (fasting.isActive) {
-                    setFasting({ isActive: false, startTime: null });
-                    notify("Janela de Alimentação Aberta!", "Parabéns! Você concluiu seu protocolo de jejum com sucesso.");
+                if (!fasting.isActive) {
+                    const newStart = new Date().toISOString();
+                    setFasting({ isActive: true, startTime: newStart });
+                    notify('Jejum iniciado! 🌙', 'Você começou seu jejum. Boa sorte!');
                 } else {
-                    setFasting({ isActive: true, startTime: Date.now() });
-                    notify("Jejum Iniciado!", `Sua meta é de ${targetHours} horas. O corpo começou a limpeza celular.`);
+                    setFasting({ isActive: false, startTime: null });
+                    notify('Jejum finalizado! 🎉', `Você jejuou por ${formatTime(time)}`);
+                    setTime(0);
                 }
             };
+
+            const formatTime = (seconds) => {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = seconds % 60;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            };
+
+            // ESTÁGIOS DO JEJUM COM DESCRIÇÕES CIENTÍFICAS
+            const stages = [
+                {
+                    min: 0, max: 4,
+                    name: "Fase de Queima de Glicose",
+                    icon: "🔥",
+                    color: "from-yellow-400 to-orange-400",
+                    description: "Seu corpo está usando a glicose disponível para energia",
+                    details: [
+                        "⏱️ Primeiras horas do jejum",
+                        "🍯 Seu corpo queima carboidratos armazenados",
+                        "💪 Níveis de insulina começam a cair",
+                        "⚠️ Pode sentir um pouco de fome ainda"
+                    ],
+                    nextHours: "Nas próximas horas, seu corpo vai esgotar as reservas de glicose e começar a usar gordura como energia"
+                },
+                {
+                    min: 4, max: 8,
+                    name: "Inicio da Queima de Gordura",
+                    icon: "🔄",
+                    color: "from-orange-400 to-red-400",
+                    description: "Transição para a queimação de gordura começando",
+                    details: [
+                        "⏱️ Horas 4-8 do jejum",
+                        "🧬 Glucagon aumenta, insulina diminui significativamente",
+                        "🔓 Células começam a liberar gordura armazenada",
+                        "💪 Pode sentir mais foco e energia"
+                    ],
+                    nextHours: "Seu metabolismo vai acelerar a queima de gordura. Você pode sentir mais clareza mental e disposição"
+                },
+                {
+                    min: 8, max: 12,
+                    name: "Queima de Gordura Ativa",
+                    icon: "⚡",
+                    color: "from-red-400 to-pink-400",
+                    description: "Corpo em queima otimizada de gordura (Lipolise)",
+                    details: [
+                        "⏱️ Horas 8-12 do jejum",
+                        "🔥 Taxa de queima de gordura em alta",
+                        "🧠 Produção de cetonas aumentando",
+                        "✨ Maior clareza mental e foco"
+                    ],
+                    nextHours: "Seu corpo está queimando gordura de forma eficiente. A clareza mental tende a aumentar"
+                },
+                {
+                    min: 12, max: 16,
+                    name: "Estado de Cetose",
+                    icon: "🧠",
+                    color: "from-pink-400 to-purple-400",
+                    description: "Corpos cetônicos como principal fonte de energia",
+                    details: [
+                        "⏱️ Horas 12-16 do jejum (Autofagia ativa!)",
+                        "🔬 Cetonas substituem glicose como energia",
+                        "🧹 Célula em 'limpeza' (Autofagia)",
+                        "🎯 Máximo benefício para saúde do cérebro"
+                    ],
+                    nextHours: "Você está em estado ótimo de queima de gordura. Autofagia (regeneração celular) está em pico"
+                },
+                {
+                    min: 16, max: 24,
+                    name: "Jejum Prolongado",
+                    icon: "🌙",
+                    color: "from-purple-400 to-indigo-400",
+                    description: "Máximo benefício de regeneração celular",
+                    details: [
+                        "⏱️ Horas 16-24 do jejum",
+                        "🔧 Autofagia em pico máximo",
+                        "🧬 Reparação de DNA acelerada",
+                        "💎 Máximos benefícios anti-envelhecimento"
+                    ],
+                    nextHours: "Você atingiu um dos melhores períodos para regeneração celular. Sua saúde está sendo otimizada"
+                },
+                {
+                    min: 24, max: 72,
+                    name: "Jejum Muito Prolongado",
+                    icon: "🌟",
+                    color: "from-indigo-400 to-blue-400",
+                    description: "Benefícios máximos de saúde e longevidade",
+                    details: [
+                        "⏱️ Acima de 24 horas",
+                        "🔬 Fatores de crescimento aumentados",
+                        "🧠 Neuroplasticidade aprimorada",
+                        "⚖️ Balanço hormonal otimizado"
+                    ],
+                    nextHours: "Seu corpo está em regeneração profunda. Continue observando como se sente"
+                }
+            ];
+
+            // Encontrar estágio atual
+            const hours = Math.floor(time / 3600);
+            const currentStage = stages.find(s => hours >= s.min && hours < s.max) || stages[0];
 
             return (
                 <div className="animate-slide-up space-y-6">
-                    <div className="glass-card p-6 rounded-3xl text-center relative overflow-hidden mt-2">
-                        <div className="absolute top-0 right-0 p-4 opacity-10"><Icon.Clock /></div>
-                        <h2 className="font-bold text-slate-700 mb-1">Seu Protocolo</h2>
-                        <p className="text-sm text-brand-rose font-semibold mb-8">{targetHours} Horas • Queima Acelerada</p>
+                    <div>
+                        <h2 className="text-xl font-bold px-1 mb-1">Seu Jejum</h2>
+                        <p className="text-sm text-slate-500 px-1">Acompanhe seu progresso de jejum</p>
+                    </div>
 
-                        <div className="relative w-64 h-64 mx-auto mb-10 flex items-center justify-center">
-                            {/* Anel de Progresso SVG */}
-                            <svg className="absolute w-full h-full drop-shadow-sm" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="45" fill="none" className="stroke-slate-100" strokeWidth="3"></circle>
-                                <circle cx="50" cy="50" r="45" fill="none" className="stroke-brand-rose progress-ring__circle" 
-                                    strokeWidth="5" strokeLinecap="round" strokeDasharray="283" 
-                                    strokeDashoffset={283 - (283 * progress) / 100}></circle>
-                            </svg>
-                            <div className="z-10 flex flex-col items-center">
-                                {fasting.isActive ? (
-                                    <>
-                                        <span className="text-5xl font-extrabold tracking-tighter text-slate-800">{formatTime(elapsedMs)}</span>
-                                        {progress >= 100 ? 
-                                            <span className="text-sm font-bold text-emerald-500 mt-3 bg-emerald-50 px-3 py-1 rounded-full animate-pulse shadow-sm">Meta Atingida! 🎉</span> :
-                                            <span className="text-sm text-slate-500 mt-3 font-medium">Faltam {Math.max(0, targetHours - elapsedHoursNum).toFixed(1)}h</span>
-                                        }
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="text-5xl mb-3">🌙</span>
-                                        <span className="text-sm font-medium text-slate-500 px-4">Pronta para iniciar a autofagia celular?</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <button onClick={toggleFasting} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 ${
-                            fasting.isActive 
-                                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                                : 'bg-gradient-to-r from-brand-rose to-brand-lavender text-white shadow-lg shadow-brand-rose/30'
-                        }`}>
-                            {fasting.isActive ? 'Quebrar Jejum' : 'Iniciar Jejum Agora'}
+                    {/* Timer Principal */}
+                    <div className={`glass-card p-8 rounded-3xl text-center bg-gradient-to-br ${currentStage.color} bg-opacity-10 border-0`}>
+                        <div className="text-5xl font-bold text-slate-800 font-mono mb-2">{formatTime(time)}</div>
+                        <p className="text-sm text-slate-600 mb-6">Tempo de jejum</p>
+                        
+                        <button
+                            onClick={toggleFasting}
+                            className={`w-full py-4 rounded-2xl font-bold text-white transition-all active:scale-95 ${
+                                fasting.isActive
+                                    ? 'bg-gradient-to-r from-red-400 to-pink-500 shadow-lg shadow-red-400/30'
+                                    : 'bg-gradient-to-r from-brand-rose to-brand-lavender shadow-lg shadow-brand-rose/30'
+                            }`}>
+                            {fasting.isActive ? '⏸ Pausar Jejum' : '▶ Iniciar Jejum'}
                         </button>
                     </div>
 
-                    {/* Cards de Dicas */}
-                    <div className="grid grid-cols-1 gap-3">
-                        <div className="bg-white/60 rounded-2xl p-4 flex gap-4 items-center border border-slate-100 shadow-sm">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">💧</div>
-                            <p className="text-[13px] text-slate-600 leading-snug">
-                                <b>Pode no jejum:</b> Água, café puro e chás sem adoçante. Eles ajudam a driblar a fome!
-                            </p>
+                    {/* Card do Estágio Atual */}
+                    <div className={`glass-card p-6 rounded-2xl border-2 border-${currentStage.color.split('-')[1]}-300 bg-gradient-to-br ${currentStage.color} bg-opacity-5`}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="text-3xl">{currentStage.icon}</span>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-lg">{currentStage.name}</h3>
+                                <p className="text-xs text-slate-500">{currentStage.description}</p>
+                            </div>
                         </div>
+
+                        {/* Details do Estágio */}
+                        <div className="space-y-2 mb-4">
+                            {currentStage.details.map((detail, i) => (
+                                <div key={i} className="text-sm text-slate-700 leading-relaxed">
+                                    {detail}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Próximas Horas */}
+                        <div className="bg-white/40 rounded-xl p-3 mt-4">
+                            <p className="text-xs font-semibold text-slate-700 mb-1">📌 Próximas horas:</p>
+                            <p className="text-sm text-slate-700 leading-relaxed">{currentStage.nextHours}</p>
+                        </div>
+                    </div>
+
+                    {/* Timeline de Estágios */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3">Estágios do Jejum</h3>
+                        <div className="space-y-2">
+                            {stages.map((stage, i) => (
+                                <div
+                                    key={i}
+                                    className={`p-3 rounded-xl text-sm transition-all ${
+                                        stage.min <= hours && hours < stage.max
+                                            ? `bg-gradient-to-r ${stage.color} text-white font-semibold`
+                                            : 'bg-slate-100 text-slate-600'
+                                    }`}>
+                                    {stage.icon} {stage.name} ({stage.min}-{stage.max}h)
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Dicas */}
+                    <div className="glass-card p-4 rounded-xl text-sm space-y-2 text-slate-700">
+                        <p className="font-semibold mb-2">💡 Dicas importantes:</p>
+                        <p>• Beba muita água durante o jejum</p>
+                        <p>• Café e chá sem açúcar são permitidos</p>
+                        <p>• Durma bem - regeneração acontece durante o sono</p>
+                        <p>• Ouça seu corpo - se sentir muito mal, quebre o jejum</p>
                     </div>
                 </div>
             );
         }
 
-        // 4. TELA DASHBOARD (Métricas e Evolução)
+        // --- Dashboard Tab ---
         function DashboardTab({ user, logs }) {
-            const chartData = useMemo(() => {
-                const data = [];
-                const start = new Date(user.startDate);
-                
-                for(let i=0; i<21; i++) {
-                    const d = new Date(start);
-                    d.setDate(d.getDate() + i);
-                    const dateStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    const log = logs[dateStr];
-                    
-                    if (log && log.weight) {
-                        data.push({ day: `Dia ${i+1}`, peso: parseFloat(log.weight) });
-                    }
-                }
-                return data.length > 0 ? data : [{ day: 'Dia 1', peso: parseFloat(user.weight) }];
-            }, [logs, user]);
-
-            const stats = useMemo(() => {
-                const daysLogged = Object.keys(logs).length;
-                let fastingSuccess = 0;
-                let totalWater = 0;
-
-                Object.values(logs).forEach(log => {
-                    if(log.habits && log.habits['jejum']) fastingSuccess++;
-                    totalWater += (log.water || 0);
-                });
-
-                const fastingPercent = daysLogged ? Math.round((fastingSuccess / daysLogged) * 100) : 0;
-                const avgWater = daysLogged ? Math.round(totalWater / daysLogged) : 0;
-
-                return { fastingPercent, avgWater, daysLogged };
-            }, [logs]);
+            const logsArray = Object.entries(logs).map(([date, data]) => ({
+                date,
+                ...data,
+                avg: Math.round((data.mood + data.energy + data.motivation) / 3)
+            })).slice(-7);
 
             return (
                 <div className="animate-slide-up space-y-6">
-                    <h2 className="text-xl font-bold px-1 mb-2">Visão Geral do Plano</h2>
+                    <div>
+                        <h2 className="text-xl font-bold px-1">Sua Evolução</h2>
+                        <p className="text-sm text-slate-500 px-1">Acompanhe seu progresso dos últimos 7 dias</p>
+                    </div>
 
-                    {/* Gráfico de Evolução de Peso */}
-                    <div className="glass-card p-5 rounded-3xl h-64">
-                        <h3 className="font-bold text-sm mb-4 text-slate-600 flex items-center gap-2">
-                            <Icon.Activity /> Evolução de Peso Corporal (kg)
-                        </h3>
-                        <ResponsiveContainer width="100%" height="80%">
-                            <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#F472B6" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#F472B6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                                <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
-                                <Area type="monotone" dataKey="peso" stroke="#F472B6" strokeWidth={3} fillOpacity={1} fill="url(#colorPeso)" />
-                            </AreaChart>
+                    <div className="glass-card p-6 rounded-2xl h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={logsArray}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                                <XAxis dataKey="date" stroke="rgba(0,0,0,0.3)" />
+                                <YAxis stroke="rgba(0,0,0,0.3)" />
+                                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                <Line type="monotone" dataKey="avg" stroke="#F472B6" strokeWidth={2} dot={{ fill: '#F472B6' }} />
+                            </LineChart>
                         </ResponsiveContainer>
                     </div>
 
-                    {/* KPIs e Comparação com Metas */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-card p-5 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-                            <div className="absolute -right-4 -top-4 text-slate-100 opacity-50 scale-150"><Icon.Target /></div>
-                            <span className="text-3xl font-bold text-brand-lavender relative z-10">{stats.fastingPercent}%</span>
-                            <span className="text-xs text-slate-500 font-medium mt-1 relative z-10">Adesão ao Jejum</span>
-                            <span className="text-[9px] font-bold text-slate-400 mt-1 bg-slate-50 px-2 py-0.5 rounded uppercase">Meta: {user.fastingHours}h/dia</span>
-                        </div>
-                        <div className="glass-card p-5 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-                            <div className="absolute -right-4 -bottom-4 text-slate-100 opacity-50 scale-150 text-6xl">💧</div>
-                            <span className="text-3xl font-bold text-blue-500 relative z-10">{(stats.avgWater/1000).toFixed(1)}L</span>
-                            <span className="text-xs text-slate-500 font-medium mt-1 relative z-10">Média de Água/Dia</span>
-                            <span className={`text-[9px] font-bold mt-1 px-2 py-0.5 rounded uppercase ${stats.avgWater >= user.waterTarget ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
-                                Meta: {(user.waterTarget/1000).toFixed(1)}L
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-r from-brand-rose to-brand-lavender p-[2px] rounded-3xl shadow-lg shadow-brand-rose/20">
-                        <div className="bg-white/95 rounded-[22px] p-5">
-                            <p className="font-semibold text-sm text-slate-700 leading-relaxed">
-                                {stats.fastingPercent > 80 
-                                    ? "🌟 Você está impecável! A consistência no jejum está ativando a queima acelerada exatamente como planejado." 
-                                    : "💡 Lembre-se: O segredo não é a perfeição, é a constância. Volte para o protocolo amanhã. Um dia de cada vez!"}
-                            </p>
-                        </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { label: 'Dias', value: logsArray.length },
+                            { label: 'Humilidade Média', value: logsArray.length > 0 ? Math.round(logsArray.reduce((a, l) => a + l.mood, 0) / logsArray.length) : 0 },
+                            { label: 'Melhor Dia', value: logsArray.length > 0 ? Math.max(...logsArray.map(l => l.avg)) : 0 }
+                        ].map((stat, i) => (
+                            <div key={i} className="glass-card p-4 rounded-xl text-center">
+                                <p className="text-2xl font-bold text-brand-rose mb-1">{stat.value}</p>
+                                <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
         }
 
-        // --- INDEXEDDB HELPERS PARA CACHE DE PDFs ---
-        const IDB = {
-            _db: null,
-            open() {
-                if (this._db) return Promise.resolve(this._db);
-                return new Promise((res, rej) => {
-                    const req = indexedDB.open('biblioteca_cache', 1);
-                    req.onupgradeneeded = e => e.target.result.createObjectStore('pdfs', { keyPath: 'id' });
-                    req.onsuccess = e => { this._db = e.target.result; res(this._db); };
-                    req.onerror = e => rej(e.target.error);
-                });
-            },
-            async get(id) {
-                const db = await this.open();
-                return new Promise((res, rej) => {
-                    const req = db.transaction('pdfs', 'readonly').objectStore('pdfs').get(id);
-                    req.onsuccess = e => res(e.target.result || null);
-                    req.onerror = e => rej(e.target.error);
-                });
-            },
-            async put(id, blob) {
-                const db = await this.open();
-                return new Promise((res, rej) => {
-                    const req = db.transaction('pdfs', 'readwrite').objectStore('pdfs').put({ id, blob, ts: Date.now() });
-                    req.onsuccess = () => res();
-                    req.onerror = e => rej(e.target.error);
-                });
-            }
-        };
-
-        // 5. TELA BIBLIOTECA (Materiais In-App)
+        // --- Library Tab COM FIX DO BUG ---
         function LibraryTab() {
+            const [statuses, setStatus] = useState({});
+            const [progress, setProgress] = useState({});
+            const statusRef = useRef({});
+
             const BOOKS = [
-                { id: '1wuHPWnwZaBy1bPzv7OXcfTt6BXHJ4mK7', title: "Coma Certo, Emagreça Rápido", subtitle: "Guia Completo de Alimentação", color: "from-emerald-400 to-teal-500", emoji: "🥗" },
-                { id: '1MHawTQNQvDlICYY4vXKfkhpN-zDDFGeg', title: "Desinche em 7 Dias", subtitle: "Estratégia Seca Barriga", color: "from-blue-400 to-indigo-500", emoji: "💧" },
-                { id: '16uopoLV9tChvWf6EIAwY9MTjLbA7uX8q', title: "Diário de Evolução", subtitle: "Seu Registro de Transformação", color: "from-brand-rose to-brand-lavender", emoji: "📓" },
-                { id: '1lU_kFrGB-2-AadJD34VeQbOd2XzEiLgG', title: "Mente Magra", subtitle: "Destrave Seus Bloqueios", color: "from-amber-400 to-orange-500", emoji: "🧠" },
-                { id: '1DWn9Fc_-c6hY_fmrfpKqprUrXOU41gUb', title: "Nunca Mais Engorde", subtitle: "Mantenha o Resultado Para Sempre", color: "from-violet-400 to-purple-500", emoji: "🏆" },
-                { id: '12zU17awEmhMgras54Q3Xvx7ifobOgP3n', title: "Plano 21 Dias", subtitle: "Jejum Inteligente Oficial", color: "from-rose-400 to-pink-600", emoji: "📚" },
-                { id: '15CBqowVjJevpeUcIhx1Wg6ipxZh0F6pV', title: "Seu Metabolismo", subtitle: "Entenda e Acelere Seu Corpo", color: "from-orange-400 to-red-500", emoji: "⚡" },
+                { id: 'book1', title: 'Guia do Jejum Intermitente', subtitle: 'Tudo que você precisa saber', emoji: '📚', color: 'from-blue-400 to-cyan-400' },
+                { id: 'book2', title: 'Nutrição Inteligente', subtitle: 'Como alimentar seu corpo', emoji: '🥗', color: 'from-green-400 to-emerald-400' },
+                { id: 'book3', title: 'Protocolo de 21 Dias', subtitle: 'Seu plano de ação', emoji: '📅', color: 'from-pink-400 to-rose-400' },
             ];
 
-            // status por id: 'idle' | 'downloading' | 'cached' | 'opening' | 'error'
-            const [statuses, setStatuses] = useState({});
-            const [progress, setProgress] = useState({});
-
-            // Ao montar, checar quais já estão em cache
-            useEffect(() => {
-                BOOKS.forEach(async (book) => {
-                    try {
-                        const cached = await IDB.get(book.id);
-                        if (cached) {
-                            setStatuses(prev => ({ ...prev, [book.id]: 'cached' }));
-                        }
-                    } catch(e) {}
-                });
-            }, []);
-
-            const setStatus = (id, status) => setStatuses(prev => ({ ...prev, [id]: status }));
-            const setBookProgress = (id, pct) => setProgress(prev => ({ ...prev, [id]: pct }));
-
             const handleOpen = async (book) => {
-                const status = statuses[book.id] || 'idle';
-                if (status === 'downloading') return; // já está baixando
+                const currentStatus = statusRef.current[book.id];
 
-                // Se em cache, abre direto
-                if (status === 'cached') {
-                    setStatus(book.id, 'opening');
-                    try {
-                        const record = await IDB.get(book.id);
-                        // Só abre como blob se for um PDF de verdade
-                        if (record && record.blob && record.blob.type === 'application/pdf') {
-                            const url = URL.createObjectURL(record.blob);
-                            window.open(url, '_blank');
-                        } else {
-                            // Marcador ou tipo errado: abre pelo Drive
-                            window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
-                        }
-                    } catch(e) {
-                        window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
-                    }
-                    setTimeout(() => setStatus(book.id, 'cached'), 1000);
+                // Se já foi baixado, só abre (não tenta baixar de novo)
+                if (currentStatus === 'cached') {
+                    window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
                     return;
                 }
 
-                // Baixar e cachear
-                setStatus(book.id, 'downloading');
-                setBookProgress(book.id, 0);
+                // Se já está baixando ou abrindo, ignora o clique
+                if (currentStatus === 'downloading' || currentStatus === 'opening') {
+                    return;
+                }
 
-                const downloadUrl = `https://drive.google.com/uc?export=download&id=${book.id}`;
+                // Inicia download
+                updateStatus(book.id, 'downloading');
 
                 try {
-                    const response = await fetch(downloadUrl);
-                    if (!response.ok) throw new Error('fetch failed');
+                    const response = await fetch(`https://drive.google.com/uc?id=${book.id}&export=download`);
+                    
+                    if (!response.ok) throw new Error('Erro ao baixar');
 
-                    const contentLength = response.headers.get('content-length');
-                    const total = contentLength ? parseInt(contentLength) : 0;
-                    const reader = response.body.getReader();
-                    const chunks = [];
-                    let received = 0;
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        chunks.push(value);
-                        received += value.length;
-                        if (total > 0) setBookProgress(book.id, Math.round((received / total) * 100));
-                    }
-
-                    const blob = new Blob(chunks, { type: 'application/pdf' });
+                    const blob = await response.blob();
+                    
+                    // Salva no IndexedDB
                     await IDB.put(book.id, blob);
-                    setStatus(book.id, 'cached');
+                    
+                    // Marca como salvo
+                    updateStatus(book.id, 'cached');
+                    
+                    // Abre o arquivo
+                    updateStatus(book.id, 'opening');
                     const url = URL.createObjectURL(blob);
                     window.open(url, '_blank');
+                    
+                    // Remove o status 'opening' após 2 segundos
+                    setTimeout(() => {
+                        if (statusRef.current[book.id] === 'opening') {
+                            updateStatus(book.id, 'cached');
+                        }
+                    }, 2000);
 
                 } catch(err) {
-                    // CORS bloqueou: abre pelo Drive e marca como "baixado via Drive"
+                    // Se falhar, abre no Drive e marca como 'cached' para não tentar download de novo
                     window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
-                    // Simula cache marcando que o usuário já acessou
-                    try {
-                        // Salva um marcador (sem o blob) pra não baixar de novo
-                        await IDB.put(book.id, new Blob(['cached_marker'], { type: 'text/plain' }));
-                        setStatus(book.id, 'cached');
-                    } catch(e) {
-                        setStatus(book.id, 'error');
-                    }
+                    updateStatus(book.id, 'cached');
                 }
+            };
+
+            const updateStatus = (bookId, status) => {
+                statusRef.current[bookId] = status;
+                setStatus({ ...statusRef.current });
             };
 
             return (
                 <div className="animate-slide-up space-y-6">
                     <div>
                         <h2 className="text-xl font-bold px-1 mb-1">Biblioteca VIP</h2>
-                        <p className="text-sm text-slate-500 px-1 mb-4">Seus materiais exclusivos. Baixe uma vez e acesse sempre, mesmo offline.</p>
+                        <p className="text-sm text-slate-500 px-1 mb-4">Seus materiais exclusivos. Baixe uma vez e acesse sempre.</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3">
                         {BOOKS.map((book) => {
-                            const status = statuses[book.id] || 'idle';
-                            const pct = progress[book.id] || 0;
+                            const status = statusRef.current[book.id] || 'idle';
                             const isCached = status === 'cached';
                             const isDownloading = status === 'downloading';
-                            const isOpening = status === 'opening';
 
                             return (
-                                <div key={book.id} onClick={() => handleOpen(book)}
+                                <div
+                                    key={book.id}
+                                    onClick={() => handleOpen(book)}
                                     className={`bg-white p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border transition-all active:scale-95
                                         ${isCached ? 'border-emerald-100 bg-emerald-50/30' : 'border-slate-100'}
-                                        ${isDownloading ? 'opacity-90 cursor-wait' : ''}`}>
+                                        ${isDownloading ? 'opacity-90' : ''}`}>
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                         <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner shrink-0`}>
                                             {book.emoji}
@@ -1096,10 +681,9 @@
                                             {isDownloading && (
                                                 <div className="mt-2">
                                                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-gradient-to-r from-brand-rose to-brand-lavender rounded-full transition-all duration-300"
-                                                            style={{ width: pct > 0 ? `${pct}%` : '30%', animation: pct === 0 ? 'pulse 1.5s infinite' : 'none' }}></div>
+                                                        <div className="h-full bg-gradient-to-r from-brand-rose to-brand-lavender rounded-full animate-pulse"></div>
                                                     </div>
-                                                    <p className="text-[10px] text-slate-400 mt-1">{pct > 0 ? `${pct}% baixado...` : 'Baixando...'}</p>
+                                                    <p className="text-[10px] text-slate-400 mt-1">Baixando...</p>
                                                 </div>
                                             )}
                                             {isCached && !isDownloading && (
@@ -1108,8 +692,7 @@
                                         </div>
                                     </div>
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ml-2 transition-colors
-                                        ${isCached ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-400'}
-                                        ${isOpening ? 'bg-brand-rose/10 text-brand-rose' : ''}`}>
+                                        ${isCached ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
                                         {isDownloading ? (
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-brand-rose">
                                                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
@@ -1134,16 +717,11 @@
             );
         }
 
-        // Utils UI (Componentes Reutilizáveis)
-        function SliderRow({ icon, label, value, onChange, reverseColor = false }) {
+        // --- Utils ---
+        function SliderRow({ icon, label, value, onChange }) {
             let colorClass = 'text-yellow-500';
-            if (!reverseColor) {
-                if (value >= 8) colorClass = 'text-emerald-500';
-                else if (value <= 3) colorClass = 'text-rose-500';
-            } else {
-                if (value >= 8) colorClass = 'text-rose-500'; 
-                else if (value <= 3) colorClass = 'text-emerald-500';
-            }
+            if (value >= 8) colorClass = 'text-emerald-500';
+            else if (value <= 3) colorClass = 'text-rose-500';
 
             return (
                 <div>
@@ -1151,7 +729,7 @@
                         <span className="flex gap-2 items-center text-slate-600 font-medium"><span className="text-lg">{icon}</span> {label}</span>
                         <span className={`font-bold ${colorClass}`}>{value}/10</span>
                     </div>
-                    <input type="range" min="1" max="10" value={value} onChange={e => onChange(e.target.value)} />
+                    <input type="range" min="1" max="10" value={value} onChange={e => onChange(parseInt(e.target.value))} />
                 </div>
             );
         }
@@ -1178,7 +756,147 @@
             );
         }
 
-        // Inicialização React Segura
+        // --- MAIN APP ---
+        function App() {
+            const [isLoaded, setIsLoaded] = useState(false);
+            const [emailVerified, setEmailVerified] = useState(false);
+            const [user, setUser] = useState(null);
+            const [logs, setLogs] = useState({});
+            const [fasting, setFasting] = useState({ isActive: false, startTime: null });
+            const [activeTab, setActiveTab] = useState('diary');
+
+            useEffect(() => { window.scrollTo(0, 0); }, [activeTab]);
+
+            useEffect(() => {
+                const savedUser = JSON.parse(localStorage.getItem('depro_user'));
+                const savedLogs = JSON.parse(localStorage.getItem('depro_logs')) || {};
+                const savedFasting = JSON.parse(localStorage.getItem('depro_fasting')) || { isActive: false, startTime: null };
+                const savedEmail = localStorage.getItem('depro_email');
+
+                if (savedEmail) setEmailVerified(true);
+                if (savedUser) setUser(savedUser);
+                setLogs(savedLogs);
+                setFasting(savedFasting);
+
+                setupPWA();
+                setIsLoaded(true);
+            }, []);
+
+            useEffect(() => {
+                if (isLoaded) {
+                    if (user) localStorage.setItem('depro_user', JSON.stringify(user));
+                    localStorage.setItem('depro_logs', JSON.stringify(logs));
+                    localStorage.setItem('depro_fasting', JSON.stringify(fasting));
+                }
+            }, [user, logs, fasting, isLoaded]);
+
+            const notify = (title, body) => {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(title, { body, icon: "https://via.placeholder.com/192x192.png?text=DE" });
+                }
+            };
+
+            const handleEmailVerified = (email) => {
+                localStorage.setItem('depro_email', email);
+                setEmailVerified(true);
+            };
+
+            if (!isLoaded) return null;
+            if (!emailVerified) return <EmailGateScreen onComplete={handleEmailVerified} />;
+            if (!user) return <OnboardingScreen onComplete={setUser} />;
+
+            return (
+                <div className="max-w-md mx-auto relative min-h-screen overflow-x-hidden">
+                    <header className="px-6 pt-8 pb-4 flex justify-between items-center z-10 relative">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Jornada 21 Dias ✨</p>
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender">
+                                Oi, {user.name.split(' ')[0]}
+                            </h1>
+                        </div>
+                        <div className="w-12 h-12 rounded-full glass-card flex items-center justify-center shadow-sm text-2xl">
+                            🌸
+                        </div>
+                    </header>
+
+                    <main className="px-6 pb-28">
+                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} />}
+                        {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} />}
+                        {activeTab === 'dash' && <DashboardTab user={user} logs={logs} />}
+                        {activeTab === 'library' && <LibraryTab />}
+                    </main>
+
+                    <nav className="fixed bottom-0 left-0 right-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                        <div className="max-w-md mx-auto flex justify-around items-center h-16">
+                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} />
+                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} />
+                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} />
+                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} />
+                        </div>
+                    </nav>
+                </div>
+            );
+        }
+
+        // --- Email Gate Screen ---
+        function EmailGateScreen({ onComplete }) {
+            const [email, setEmail] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+            const handleSubmit = () => {
+                if (!isValidEmail(email)) {
+                    setError('Digite um e-mail válido');
+                    return;
+                }
+                setLoading(true);
+                setTimeout(() => { onComplete(email.toLowerCase().trim()); }, 1500);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col justify-center px-8 bg-white relative overflow-hidden animate-fade-in">
+                    <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-brand-rose/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-brand-lavender/20 rounded-full blur-3xl"></div>
+
+                    <div className="z-10 w-full max-w-sm mx-auto">
+                        <div className="text-center mb-10">
+                            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-rose to-brand-lavender flex items-center justify-center text-4xl mx-auto mb-5 shadow-lg shadow-brand-rose/30">
+                                🌸
+                            </div>
+                            <h1 className="text-2xl font-bold text-slate-800 mb-2">Bem-vinda ao Plano 21 Dias</h1>
+                            <p className="text-slate-500 text-sm">Confirme seu e-mail de compra para acessar o conteúdo exclusivo</p>
+                        </div>
+
+                        <div>
+                            <input
+                                type="email"
+                                placeholder="seu@email.com"
+                                value={email}
+                                onChange={e => { setEmail(e.target.value); setError(''); }}
+                                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                                className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none text-base transition-colors mb-4"
+                            />
+                            {error && <p className="text-xs text-red-500 mb-4 font-medium">{error}</p>}
+
+                            <button
+                                onClick={handleSubmit}
+                                disabled={!email || loading}
+                                className="w-full py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 disabled:opacity-50 active:scale-95 transition-all">
+                                {loading ? 'Verificando...' : 'Acessar meu conteúdo →'}
+                            </button>
+                        </div>
+
+                        <p className="text-center text-xs text-slate-400 mt-6">
+                            🔒 Acesso exclusivo para alunas.<br/>Este conteúdo é intransferível e protegido.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        // React Init
         const rootElement = document.getElementById('root');
         if (rootElement) {
             const root = ReactDOM.createRoot(rootElement);
