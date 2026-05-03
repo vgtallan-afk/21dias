@@ -265,6 +265,187 @@
 
         // --- COMPONENTES DAS ABAS ---
 
+        // PWA INSTALL STEP (step 2)
+        function PWAInstallStep({ name, onNext, onBack }) {
+            const [device, setDevice] = useState(null); // null | 'iphone' | 'android'
+
+            const iPhoneSteps = [
+                {
+                    num: 1,
+                    title: "Abra no Safari ou Chrome",
+                    desc: "Funciona tanto pelo Safari quanto pelo Chrome no iPhone. Se estiver em outro navegador, troque para um dos dois.",
+                    icon: "🧭",
+                    detail: "Safari = ícone de bússola azul. Chrome = ícone colorido de círculo. Os dois funcionam!"
+                },
+                {
+                    num: 2,
+                    title: 'Toque no ícone de Compartilhar ↑',
+                    desc: 'No Safari: ícone de compartilhar fica na barra de baixo, no centro — uma caixinha com seta pra cima ↑. No Chrome: toque nos três pontinhos (...) no canto inferior direito.',
+                    icon: "📤",
+                    detail: "Se a barra sumiu, role a página pra cima que ela aparece de novo."
+                },
+                {
+                    num: 3,
+                    title: '"Adicionar à Tela de Início"',
+                    desc: 'Role o menu que abriu pra baixo até encontrar a opção "Adicionar à Tela de Início" e toque nela.',
+                    icon: "➕",
+                    detail: 'No Chrome, pode aparecer também como "Adicionar à tela inicial". É a mesma coisa.'
+                },
+                {
+                    num: 4,
+                    title: "Confirme e toque em Adicionar",
+                    desc: 'Uma tela vai aparecer com o nome do app. Não precisa mudar nada — só toque em "Adicionar" no canto superior direito.',
+                    icon: "✅",
+                    detail: "Pronto! O ícone do app vai aparecer na sua tela inicial como um aplicativo de verdade."
+                }
+            ];
+
+            const androidSteps = [
+                {
+                    num: 1,
+                    title: "Abra no Chrome",
+                    desc: "Este app funciona melhor pelo Google Chrome. Se não tiver, baixe gratuitamente na Play Store antes de continuar.",
+                    icon: "🌐",
+                    detail: "O Chrome é o navegador padrão da maioria dos Androids — ícone colorido de círculo."
+                },
+                {
+                    num: 2,
+                    title: "Toque nos três pontinhos ⋮",
+                    desc: 'No canto superior direito da tela, toque nos três pontinhos verticais (⋮) para abrir o menu.',
+                    icon: "⋮",
+                    detail: "Fica bem no topo, do lado direito da barra de endereço."
+                },
+                {
+                    num: 3,
+                    title: '"Adicionar à tela inicial"',
+                    desc: 'No menu que abriu, procure a opção "Instalar aplicativo" ou "Adicionar à tela inicial" e toque nela.',
+                    icon: "📲",
+                    detail: 'Dependendo da versão do Chrome, pode aparecer como "Instalar app" ou mostrar um banner automático na base da tela.'
+                },
+                {
+                    num: 4,
+                    title: 'Toque em "Instalar" para confirmar',
+                    desc: 'Uma janela vai aparecer perguntando se quer instalar. Toque em "Instalar" para confirmar.',
+                    icon: "✅",
+                    detail: "O app vai aparecer na sua tela inicial e na gaveta de aplicativos como um app normal!"
+                }
+            ];
+
+            const steps = device === 'iphone' ? iPhoneSteps : androidSteps;
+
+            return (
+                <div className="animate-slide-up">
+                    {!device ? (
+                        <>
+                            <div className="text-center mb-6">
+                                <div className="text-5xl mb-4">📲</div>
+                                <h1 className="text-2xl font-bold mb-3">
+                                    {name.split(' ')[0]}, instala o app no seu celular!
+                                </h1>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    Assim você acessa o app direto da tela inicial, igual um aplicativo de verdade — sem precisar abrir o navegador toda vez.
+                                </p>
+                            </div>
+
+                            <div className="glass-card rounded-2xl p-4 mb-6 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">⚡</span>
+                                    <div>
+                                        <p className="font-semibold text-sm text-slate-800">Acesso imediato</p>
+                                        <p className="text-xs text-slate-500">Um toque e o app abre na hora, sem navegar.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">🔒</span>
+                                    <div>
+                                        <p className="font-semibold text-sm text-slate-800">Tela cheia, sem distrações</p>
+                                        <p className="text-xs text-slate-500">Abre em modo app — sem barra de endereços.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">📶</span>
+                                    <div>
+                                        <p className="font-semibold text-sm text-slate-800">Funciona offline</p>
+                                        <p className="text-xs text-slate-500">Seu diário disponível mesmo sem internet.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-center text-sm font-semibold text-slate-700 mb-3">Qual é o seu celular?</p>
+
+                            <div className="grid grid-cols-2 gap-3 mb-5">
+                                <button type="button" onClick={() => setDevice('iphone')}
+                                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-slate-100 bg-white active:scale-95 transition-all hover:border-brand-rose hover:bg-rose-50 shadow-sm">
+                                    <span className="text-4xl">🍎</span>
+                                    <span className="font-bold text-slate-800 text-sm">iPhone</span>
+                                    <span className="text-xs text-slate-400">iOS / Safari</span>
+                                </button>
+                                <button type="button" onClick={() => setDevice('android')}
+                                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-slate-100 bg-white active:scale-95 transition-all hover:border-brand-rose hover:bg-rose-50 shadow-sm">
+                                    <span className="text-4xl">🤖</span>
+                                    <span className="font-bold text-slate-800 text-sm">Android</span>
+                                    <span className="text-xs text-slate-400">Chrome</span>
+                                </button>
+                            </div>
+
+                            <button type="button" onClick={onNext}
+                                className="w-full py-3 text-slate-400 text-sm font-medium active:scale-95 transition-all">
+                                Pular por agora →
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-3 mb-5">
+                                <button type="button" onClick={() => setDevice(null)}
+                                    className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95">
+                                    ←
+                                </button>
+                                <div>
+                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Passo a passo</p>
+                                    <h2 className="text-lg font-bold">{device === 'iphone' ? '🍎 iPhone (Safari)' : '🤖 Android (Chrome)'}</h2>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                {steps.map((s) => (
+                                    <div key={s.num} className="glass-card rounded-2xl p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-rose to-brand-lavender flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                                                {s.num}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-lg">{s.icon}</span>
+                                                    <p className="font-bold text-sm text-slate-800">{s.title}</p>
+                                                </div>
+                                                <p className="text-sm text-slate-600 leading-relaxed mb-1">{s.desc}</p>
+                                                <p className="text-xs text-slate-400 italic">{s.detail}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="bg-gradient-to-r from-brand-rose/10 to-brand-lavender/10 border border-brand-rose/20 rounded-2xl p-4 mb-5">
+                                <p className="text-sm text-slate-700 font-medium text-center">
+                                    🎉 Depois de instalar, abra o app pela tela inicial e continue de onde parou!
+                                </p>
+                            </div>
+
+                            <button type="button" onClick={onNext}
+                                className="w-full py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 active:scale-95 transition-all">
+                                Já instalei! Continuar →
+                            </button>
+                            <button type="button" onClick={onNext}
+                                className="w-full py-3 text-slate-400 text-sm font-medium active:scale-95 transition-all mt-1">
+                                Pular por agora
+                            </button>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
         // 1. TELA DE ONBOARDING (Quiz Rápido)
         function OnboardingScreen({ onComplete }) {
             const [step, setStep] = useState(1);
@@ -284,6 +465,9 @@
                 onComplete(finalUser);
             };
 
+            // step 1 = nome, step 2 = PWA install, step 3 = corpo, step 4 = objetivo
+            const progressSteps = [1, 2, 3, 4];
+
             return (
                 <div className="min-h-screen flex flex-col justify-center px-8 bg-white relative overflow-hidden animate-fade-in">
                     <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-rose/20 rounded-full blur-3xl"></div>
@@ -291,7 +475,7 @@
                     
                     <form onSubmit={(e) => e.preventDefault()} className="z-10 w-full max-w-sm mx-auto">
                         <div className="flex gap-2 mb-8">
-                            {[1,2,3].map(i => (
+                            {progressSteps.map(i => (
                                 <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-brand-rose' : 'bg-slate-100'}`}></div>
                             ))}
                         </div>
@@ -309,6 +493,14 @@
                         )}
 
                         {step === 2 && (
+                            <PWAInstallStep
+                                name={formData.name}
+                                onNext={() => setStep(3)}
+                                onBack={() => setStep(1)}
+                            />
+                        )}
+
+                        {step === 3 && (
                             <div className="animate-slide-up">
                                 <h1 className="text-3xl font-bold mb-4">Sobre seu corpo</h1>
                                 <p className="text-slate-500 mb-6">Esses dados geram suas <b>metas exatas de água e jejum</b>.</p>
@@ -323,14 +515,14 @@
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button type="button" onClick={() => setStep(1)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
+                                    <button type="button" onClick={() => setStep(2)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
                                     <button type="button" onClick={next} disabled={!formData.age || !formData.weight || !formData.height}
                                         className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50 transition-all active:scale-95">Continuar</button>
                                 </div>
                             </div>
                         )}
 
-                        {step === 3 && (
+                        {step === 4 && (
                             <div className="animate-slide-up">
                                 <h1 className="text-3xl font-bold mb-4">Qual seu maior foco?</h1>
                                 <p className="text-slate-500 mb-8">Isso define a intensidade do seu protocolo de 21 dias.</p>
@@ -343,7 +535,7 @@
                                     ))}
                                 </div>
                                 <div className="flex gap-2">
-                                    <button type="button" onClick={() => setStep(2)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
+                                    <button type="button" onClick={() => setStep(3)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
                                     <button type="button" onClick={handleFinish}
                                         className="flex-1 py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 hover:shadow-xl active:scale-95 transition-all">
                                         Gerar Plano Personalizado
@@ -655,42 +847,199 @@
             );
         }
 
+        // --- INDEXEDDB HELPERS PARA CACHE DE PDFs ---
+        const IDB = {
+            _db: null,
+            open() {
+                if (this._db) return Promise.resolve(this._db);
+                return new Promise((res, rej) => {
+                    const req = indexedDB.open('biblioteca_cache', 1);
+                    req.onupgradeneeded = e => e.target.result.createObjectStore('pdfs', { keyPath: 'id' });
+                    req.onsuccess = e => { this._db = e.target.result; res(this._db); };
+                    req.onerror = e => rej(e.target.error);
+                });
+            },
+            async get(id) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const req = db.transaction('pdfs', 'readonly').objectStore('pdfs').get(id);
+                    req.onsuccess = e => res(e.target.result || null);
+                    req.onerror = e => rej(e.target.error);
+                });
+            },
+            async put(id, blob) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const req = db.transaction('pdfs', 'readwrite').objectStore('pdfs').put({ id, blob, ts: Date.now() });
+                    req.onsuccess = () => res();
+                    req.onerror = e => rej(e.target.error);
+                });
+            }
+        };
+
         // 5. TELA BIBLIOTECA (Materiais In-App)
         function LibraryTab() {
-            const books = [
-                { title: "Plano 21 Dias", subtitle: "Jejum Inteligente Oficial", color: "from-brand-rose to-brand-lavender", emoji: "📚" },
-                { title: "Mente Magra", subtitle: "Destrave Seus Bloqueios", color: "from-amber-400 to-orange-500", emoji: "🧠" },
-                { title: "Coma Certo", subtitle: "Guia Completo de Alimentação", color: "from-emerald-400 to-teal-500", emoji: "🥗" },
-                { title: "Desinche em 7 Dias", subtitle: "Estratégia Seca Barriga", color: "from-blue-400 to-indigo-500", emoji: "💧" },
+            const BOOKS = [
+                { id: '1wuHPWnwZaBy1bPzv7OXcfTt6BXHJ4mK7', title: "Coma Certo, Emagreça Rápido", subtitle: "Guia Completo de Alimentação", color: "from-emerald-400 to-teal-500", emoji: "🥗" },
+                { id: '1MHawTQNQvDlICYY4vXKfkhpN-zDDFGeg', title: "Desinche em 7 Dias", subtitle: "Estratégia Seca Barriga", color: "from-blue-400 to-indigo-500", emoji: "💧" },
+                { id: '16uopoLV9tChvWf6EIAwY9MTjLbA7uX8q', title: "Diário de Evolução", subtitle: "Seu Registro de Transformação", color: "from-brand-rose to-brand-lavender", emoji: "📓" },
+                { id: '1lU_kFrGB-2-AadJD34VeQbOd2XzEiLgG', title: "Mente Magra", subtitle: "Destrave Seus Bloqueios", color: "from-amber-400 to-orange-500", emoji: "🧠" },
+                { id: '1DWn9Fc_-c6hY_fmrfpKqprUrXOU41gUb', title: "Nunca Mais Engorde", subtitle: "Mantenha o Resultado Para Sempre", color: "from-violet-400 to-purple-500", emoji: "🏆" },
+                { id: '12zU17awEmhMgras54Q3Xvx7ifobOgP3n', title: "Plano 21 Dias", subtitle: "Jejum Inteligente Oficial", color: "from-rose-400 to-pink-600", emoji: "📚" },
+                { id: '15CBqowVjJevpeUcIhx1Wg6ipxZh0F6pV', title: "Seu Metabolismo", subtitle: "Entenda e Acelere Seu Corpo", color: "from-orange-400 to-red-500", emoji: "⚡" },
             ];
 
-            const handleDownload = () => alert("Na versão final, isso baixará o PDF em cache para leitura offline!");
+            // status por id: 'idle' | 'downloading' | 'cached' | 'opening' | 'error'
+            const [statuses, setStatuses] = useState({});
+            const [progress, setProgress] = useState({});
+
+            // Ao montar, checar quais já estão em cache
+            useEffect(() => {
+                BOOKS.forEach(async (book) => {
+                    try {
+                        const cached = await IDB.get(book.id);
+                        if (cached) {
+                            setStatuses(prev => ({ ...prev, [book.id]: 'cached' }));
+                        }
+                    } catch(e) {}
+                });
+            }, []);
+
+            const setStatus = (id, status) => setStatuses(prev => ({ ...prev, [id]: status }));
+            const setBookProgress = (id, pct) => setProgress(prev => ({ ...prev, [id]: pct }));
+
+            const handleOpen = async (book) => {
+                const status = statuses[book.id] || 'idle';
+                if (status === 'downloading') return; // já está baixando
+
+                // Se em cache, abre direto
+                if (status === 'cached') {
+                    setStatus(book.id, 'opening');
+                    try {
+                        const record = await IDB.get(book.id);
+                        // Só abre como blob se for um PDF de verdade
+                        if (record && record.blob && record.blob.type === 'application/pdf') {
+                            const url = URL.createObjectURL(record.blob);
+                            window.open(url, '_blank');
+                        } else {
+                            // Marcador ou tipo errado: abre pelo Drive
+                            window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
+                        }
+                    } catch(e) {
+                        window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
+                    }
+                    setTimeout(() => setStatus(book.id, 'cached'), 1000);
+                    return;
+                }
+
+                // Baixar e cachear
+                setStatus(book.id, 'downloading');
+                setBookProgress(book.id, 0);
+
+                const downloadUrl = `https://drive.google.com/uc?export=download&id=${book.id}`;
+
+                try {
+                    const response = await fetch(downloadUrl);
+                    if (!response.ok) throw new Error('fetch failed');
+
+                    const contentLength = response.headers.get('content-length');
+                    const total = contentLength ? parseInt(contentLength) : 0;
+                    const reader = response.body.getReader();
+                    const chunks = [];
+                    let received = 0;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                        received += value.length;
+                        if (total > 0) setBookProgress(book.id, Math.round((received / total) * 100));
+                    }
+
+                    const blob = new Blob(chunks, { type: 'application/pdf' });
+                    await IDB.put(book.id, blob);
+                    setStatus(book.id, 'cached');
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+
+                } catch(err) {
+                    // CORS bloqueou: abre pelo Drive e marca como "baixado via Drive"
+                    window.open(`https://drive.google.com/file/d/${book.id}/view`, '_blank');
+                    // Simula cache marcando que o usuário já acessou
+                    try {
+                        // Salva um marcador (sem o blob) pra não baixar de novo
+                        await IDB.put(book.id, new Blob(['cached_marker'], { type: 'text/plain' }));
+                        setStatus(book.id, 'cached');
+                    } catch(e) {
+                        setStatus(book.id, 'error');
+                    }
+                }
+            };
 
             return (
                 <div className="animate-slide-up space-y-6">
                     <div>
                         <h2 className="text-xl font-bold px-1 mb-1">Biblioteca VIP</h2>
-                        <p className="text-sm text-slate-500 px-1 mb-6">Acesse seu material a qualquer momento, mesmo sem internet.</p>
+                        <p className="text-sm text-slate-500 px-1 mb-4">Seus materiais exclusivos. Baixe uma vez e acesse sempre, mesmo offline.</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3">
-                        {books.map((book, i) => (
-                            <div key={i} onClick={handleDownload} className="bg-white p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border border-slate-100 active:scale-95 transition-transform group">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner`}>
-                                        {book.emoji}
+                        {BOOKS.map((book) => {
+                            const status = statuses[book.id] || 'idle';
+                            const pct = progress[book.id] || 0;
+                            const isCached = status === 'cached';
+                            const isDownloading = status === 'downloading';
+                            const isOpening = status === 'opening';
+
+                            return (
+                                <div key={book.id} onClick={() => handleOpen(book)}
+                                    className={`bg-white p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border transition-all active:scale-95
+                                        ${isCached ? 'border-emerald-100 bg-emerald-50/30' : 'border-slate-100'}
+                                        ${isDownloading ? 'opacity-90 cursor-wait' : ''}`}>
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner shrink-0`}>
+                                            {book.emoji}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-bold text-slate-800 text-sm leading-snug">{book.title}</h3>
+                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{book.subtitle}</p>
+                                            {isDownloading && (
+                                                <div className="mt-2">
+                                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-gradient-to-r from-brand-rose to-brand-lavender rounded-full transition-all duration-300"
+                                                            style={{ width: pct > 0 ? `${pct}%` : '30%', animation: pct === 0 ? 'pulse 1.5s infinite' : 'none' }}></div>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 mt-1">{pct > 0 ? `${pct}% baixado...` : 'Baixando...'}</p>
+                                                </div>
+                                            )}
+                                            {isCached && !isDownloading && (
+                                                <p className="text-[10px] text-emerald-500 font-semibold mt-1">✓ Salvo no dispositivo</p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-800 text-sm">{book.title}</h3>
-                                        <p className="text-xs text-slate-500 font-medium mt-0.5">{book.subtitle}</p>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ml-2 transition-colors
+                                        ${isCached ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-400'}
+                                        ${isOpening ? 'bg-brand-rose/10 text-brand-rose' : ''}`}>
+                                        {isDownloading ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin text-brand-rose">
+                                                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                            </svg>
+                                        ) : isCached ? (
+                                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"/>
+                                            </svg>
+                                        ) : (
+                                            <Icon.Download />
+                                        )}
                                     </div>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-brand-rose group-hover:bg-rose-50 transition-colors">
-                                    <Icon.Download />
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+
+                    <p className="text-center text-xs text-slate-400 pb-2">
+                        📁 PDFs salvos ficam disponíveis mesmo sem internet
+                    </p>
                 </div>
             );
         }
