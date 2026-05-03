@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Diário de Evolução</title>
     
-    <!-- PWA Meta Tags -->
+    <!-- PWA Meta Tags Essenciais -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#F472B6">
+    <meta name="theme-color" content="#fdf2f8">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192x192.png?text=DE">
 
     <!-- Tailwind CSS -->
@@ -17,13 +17,13 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- React & ReactDOM -->
+    <!-- React, ReactDOM, Recharts & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
-    <!-- Babel -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script>
@@ -31,32 +31,23 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: {
-                        rose: { 50: '#fff1f2', 300: '#fda4af', 400: '#fb7185', 500: '#f43f5e' },
-                        lavender: { 50: '#eef2ff', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1' },
-                        dark: { bg: '#0f172a', card: '#1e293b', border: '#334155' }
+                        brand: {
+                            rose: '#F472B6', 
+                            lavender: '#818CF8', 
+                            light: '#FDF2F8', 
+                            dark: '#0F172A'
+                        }
                     },
                     animation: {
-                        'breathe': 'breathe 8s ease-in-out infinite',
-                        'fade-in': 'fadeIn 0.5s ease-out forwards',
-                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
-                        breathe: {
-                            '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
-                            '50%': { transform: 'scale(1.4)', opacity: '0.4' },
-                        },
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
                     }
                 }
             }
@@ -64,775 +55,696 @@
     </script>
 
     <style>
-        /* Glassmorphism utilities */
-        .glass {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        .dark .glass {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Base & Glassmorphism */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+            background-color: #fdf2f8; 
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
         }
         
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
         .tab-bar-glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.5);
-        }
-        .dark .tab-bar-glass {
-            background: rgba(15, 23, 42, 0.85);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(226, 232, 240, 0.6);
         }
 
-        /* Hide scrollbar but keep functionality */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        ::-webkit-scrollbar { display: none; } /* Oculta scrollbar mantendo funcionalidade */
+
+        /* Inputs Range Customizados */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer; background: #e2e8f0; border-radius: 999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px; width: 24px; border-radius: 50%;
+            background: #F472B6; cursor: pointer; -webkit-appearance: none; margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(244, 114, 182, 0.4); border: 2px solid #fff;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
         
-        body {
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none;
-        }
-
-        /* Circular Progress */
+        /* Animação Circular do Timer */
         .progress-ring__circle {
-            transition: stroke-dashoffset 0.35s;
+            transition: stroke-dashoffset 0.5s ease-in-out;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
+
+        /* Correção para inputs de tempo */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-rose-50 via-white to-lavender-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-500">
-    <div id="root"></div>
+<body class="text-slate-800 min-h-screen font-sans pb-24">
+    <div id="root" class="w-full h-full"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
+        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid } = window.Recharts;
 
-        // --- SVGs INLINE PARA NÃO DEPENDER DE LIBS EXTERNAS ---
-        const Icons = {
-            Home: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
-            Activity: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
-            Plus: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-            Heart: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
-            Menu: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
-            Check: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>,
-            Moon: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
-            Sun: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
-            Copy: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        // --- SVGs Inline (Zero dependências externas, robusto para offline) ---
+        const Icon = {
+            Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+            Book: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            Activity: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            Edit: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Download: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Check: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            Bell: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            Target: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
         };
 
-        // --- UTILS ---
-        const getTodayDateString = () => {
-            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-            return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+        // --- INJEÇÃO DE PWA DINÂMICA (App Instalável e Offline num único HTML) ---
+        function setupPWA() {
+            // 1. Manifest para "Add to Homescreen"
+            const manifest = {
+                name: "Diário de Evolução",
+                short_name: "Evolução",
+                start_url: ".",
+                display: "standalone",
+                background_color: "#FDF2F8",
+                theme_color: "#F472B6",
+                icons: [{ src: "https://via.placeholder.com/192x192.png?text=DE", sizes: "192x192", type: "image/png" }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+            document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+
+            // 2. Service Worker Inline para Cache Offline Verdadeiro
+            const swCode = `
+                const CACHE_NAME = 'depro-v2';
+                self.addEventListener('install', e => {
+                    self.skipWaiting();
+                    // Como é um single file, fazer cache da raiz garante funcionamento offline
+                    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll([location.pathname]))); 
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(
+                        caches.match(e.request).then(res => res || fetch(e.request).catch(() => caches.match(location.pathname)))
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(console.warn);
+            }
+
+            // 3. Permissão de Notificação Push
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        // --- UTILS & LÓGICA DE NEGÓCIO ---
+        const getTodayStr = () => {
+            const date = new Date();
+            return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         };
 
+        const calculateTargets = (weight, height, age, objective) => {
+            const w = parseFloat(weight);
+            // Meta de Água Personalizada: 35ml por kg de peso
+            const water = Math.round(w * 35);
+            
+            // Protocolo de Jejum Intermitente Personalizado
+            let fastingHours = 14; 
+            if(objective === 'emagrecer_rapido') fastingHours = 16;
+            if(objective === 'saude') fastingHours = 12;
+
+            return { waterTarget: water, fastingHours };
+        };
+
+        // --- MAIN APP ---
         function App() {
-            // --- STATE MANAGEMENT ---
             const [isLoaded, setIsLoaded] = useState(false);
-            const [user, setUser] = useState({ name: '', initialWeight: '', goalWeight: '', setupDone: false });
-            const [darkMode, setDarkMode] = useState(false);
-            const [activeTab, setActiveTab] = useState('home');
-            
-            // Jejum
-            const [fasting, setFasting] = useState({ isFasting: false, startTime: null });
-            
-            // Registros
-            const [logs, setLogs] = useState({}); // { "YYYY-MM-DD": { weight, fastingTime, food, water, cycle } }
-            
-            // Perfil Biológico
-            const [bio, setBio] = useState({ weight: '', age: '', height: '', goalWeight: '', objective: 'emagrecer' });
+            const [user, setUser] = useState(null); 
+            const [logs, setLogs] = useState({}); 
+            const [fasting, setFasting] = useState({ isActive: false, startTime: null });
+            const [activeTab, setActiveTab] = useState('diary'); // Diário como tela inicial
 
-            // --- LOCAL STORAGE EFFECTS ---
+            // Hydration do LocalStorage
             useEffect(() => {
-                const savedUser = JSON.parse(localStorage.getItem('de_user'));
-                const savedTheme = localStorage.getItem('de_theme');
-                const savedFasting = JSON.parse(localStorage.getItem('de_fasting'));
-                const savedLogs = JSON.parse(localStorage.getItem('de_logs'));
-                const savedBio = JSON.parse(localStorage.getItem('de_bio'));
+                const savedUser = JSON.parse(localStorage.getItem('depro_user'));
+                const savedLogs = JSON.parse(localStorage.getItem('depro_logs')) || {};
+                const savedFasting = JSON.parse(localStorage.getItem('depro_fasting')) || { isActive: false, startTime: null };
 
                 if (savedUser) setUser(savedUser);
-                if (savedTheme === 'dark') setDarkMode(true);
-                if (savedFasting) setFasting(savedFasting);
-                if (savedLogs) setLogs(savedLogs);
-                if (savedBio) setBio(savedBio);
+                setLogs(savedLogs);
+                setFasting(savedFasting);
                 
+                setupPWA();
                 setIsLoaded(true);
             }, []);
 
+            // Salvar no LocalStorage automaticamente
             useEffect(() => {
                 if (isLoaded) {
-                    localStorage.setItem('de_user', JSON.stringify(user));
-                    localStorage.setItem('de_fasting', JSON.stringify(fasting));
-                    localStorage.setItem('de_logs', JSON.stringify(logs));
-                    localStorage.setItem('de_bio', JSON.stringify(bio));
-                    
-                    if (darkMode) {
-                        document.documentElement.classList.add('dark');
-                        localStorage.setItem('de_theme', 'dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                        localStorage.setItem('de_theme', 'light');
-                    }
+                    if (user) localStorage.setItem('depro_user', JSON.stringify(user));
+                    localStorage.setItem('depro_logs', JSON.stringify(logs));
+                    localStorage.setItem('depro_fasting', JSON.stringify(fasting));
                 }
-            }, [user, darkMode, fasting, logs, bio, isLoaded]);
+            }, [user, logs, fasting, isLoaded]);
 
-            if (!isLoaded) return null; // Previne hidratação incorreta
-
-            // --- CÁLCULOS GERAIS ---
-            const calculateStreak = () => {
-                let streak = 0;
-                let currentDate = new Date();
-                
-                // Zera as horas para comparar apenas datas
-                currentDate.setHours(0,0,0,0);
-
-                while (true) {
-                    const dateStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    if (logs[dateStr]) {
-                        streak++;
-                        currentDate.setDate(currentDate.getDate() - 1);
-                    } else {
-                        // Se não tem registro hoje, checa ontem antes de quebrar o streak
-                        if (streak === 0) {
-                            currentDate.setDate(currentDate.getDate() - 1);
-                            const yesterdayStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                            if(logs[yesterdayStr]){
-                                streak++;
-                                currentDate.setDate(currentDate.getDate() - 1);
-                                continue;
-                            }
-                        }
-                        break;
-                    }
+            // Sistema de Notificações
+            const notify = (title, body) => {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(title, { body, icon: "https://via.placeholder.com/192x192.png?text=DE" });
                 }
-                return streak;
             };
 
-            const streak = calculateStreak();
-
-            // --- RENDER CONDICIONAL ---
-            if (!user.setupDone) {
-                return <SetupScreen user={user} setUser={setUser} setBio={setBio} />;
-            }
+            if (!isLoaded) return null;
+            if (!user) return <OnboardingScreen onComplete={setUser} />;
 
             return (
-                <div className="pb-24 max-w-md mx-auto w-full relative min-h-screen">
-                    {/* Header Padrão */}
-                    <header className="p-6 pt-8 flex justify-between items-center">
+                <div className="max-w-md mx-auto relative min-h-screen overflow-x-hidden">
+                    {/* Header Pessoal */}
+                    <header className="px-6 pt-8 pb-4 flex justify-between items-center z-10 relative">
                         <div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Oi, maravilhosa! ✨</p>
-                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 to-indigo-500">
-                                {user.name}
+                            <p className="text-sm font-medium text-slate-500">Jornada 21 Dias ✨</p>
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender">
+                                Oi, {user.name.split(' ')[0]}
                             </h1>
                         </div>
-                        <div className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-full font-bold shadow-sm">
-                            <span>🔥</span> {streak}
+                        <div className="w-12 h-12 rounded-full glass-card flex items-center justify-center shadow-sm text-2xl">
+                            🌸
                         </div>
                     </header>
 
-                    {/* Conteúdo Dinâmico das Abas */}
-                    <main className="px-6 pb-6">
-                        {activeTab === 'home' && <HomeScreen user={user} fasting={fasting} setFasting={setFasting} logs={logs} />}
-                        {activeTab === 'biohub' && <BioHubScreen bio={bio} setBio={setBio} user={user} />}
-                        {activeTab === 'registrar' && <RegisterScreen logs={logs} setLogs={setLogs} setActiveTab={setActiveTab} />}
-                        {activeTab === 'sos' && <SOSScreen />}
-                        {activeTab === 'mais' && <MoreScreen darkMode={darkMode} setDarkMode={setDarkMode} logs={logs} user={user} streak={streak} />}
+                    {/* Roteamento de Abas */}
+                    <main className="px-6 pb-28">
+                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} />}
+                        {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} />}
+                        {activeTab === 'dash' && <DashboardTab user={user} logs={logs} />}
+                        {activeTab === 'library' && <LibraryTab />}
                     </main>
 
-                    {/* Tab Bar Fixa */}
-                    <nav className="fixed bottom-0 left-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50">
-                        <div className="max-w-md mx-auto flex justify-between items-center">
-                            <TabButton icon={<Icons.Home />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-                            <TabButton icon={<Icons.Activity />} label="Bio-Hub" active={activeTab === 'biohub'} onClick={() => setActiveTab('biohub')} />
-                            
-                            {/* Botão Centralizado Maior */}
-                            <button 
-                                onClick={() => setActiveTab('registrar')}
-                                className="relative -top-5 bg-gradient-to-tr from-rose-400 to-indigo-500 text-white p-4 rounded-full shadow-lg hover:shadow-rose-500/30 transition-transform active:scale-95"
-                            >
-                                <Icons.Plus />
-                            </button>
-                            
-                            <TabButton icon={<Icons.Heart />} label="SOS" active={activeTab === 'sos'} onClick={() => setActiveTab('sos')} />
-                            <TabButton icon={<Icons.Menu />} label="Mais" active={activeTab === 'mais'} onClick={() => setActiveTab('mais')} />
+                    {/* Navegação Inferior (App-like) */}
+                    <nav className="fixed bottom-0 left-0 right-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                        <div className="max-w-md mx-auto flex justify-around items-center h-16">
+                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} />
+                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} />
+                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} />
+                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} />
                         </div>
                     </nav>
                 </div>
             );
         }
 
-        // --- COMPONENTES DAS TELAS ---
+        // --- COMPONENTES DAS ABAS ---
 
-        // 1. Tela de Setup
-        function SetupScreen({ user, setUser, setBio }) {
-            const [form, setForm] = useState({ name: '', initialWeight: '', goalWeight: '' });
+        // 1. TELA DE ONBOARDING (Quiz Rápido)
+        function OnboardingScreen({ onComplete }) {
+            const [step, setStep] = useState(1);
+            const [formData, setFormData] = useState({ name: '', age: '', weight: '', height: '', objective: 'emagrecer_rapido' });
 
-            const handleSubmit = (e) => {
+            const next = () => setStep(s => s + 1);
+            
+            const handleFinish = (e) => {
                 e.preventDefault();
-                if(form.name && form.initialWeight && form.goalWeight) {
-                    setUser({ ...form, setupDone: true });
-                    // Pré-preenche o bio
-                    setBio(prev => ({ ...prev, weight: form.initialWeight, goalWeight: form.goalWeight }));
-                }
+                const targets = calculateTargets(formData.weight, formData.height, formData.age, formData.objective);
+                const finalUser = {
+                    ...formData,
+                    ...targets,
+                    startDate: getTodayStr(),
+                    setupDone: true
+                };
+                onComplete(finalUser);
             };
 
             return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
-                    {/* Elementos decorativos */}
-                    <div className="absolute top-0 left-0 w-64 h-64 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+                <div className="min-h-screen flex flex-col justify-center px-8 bg-white relative overflow-hidden animate-fade-in">
+                    <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-brand-rose/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-brand-lavender/20 rounded-full blur-3xl"></div>
                     
-                    <div className="w-full max-w-sm z-10 glass p-8 rounded-[2rem] shadow-2xl">
-                        <div className="text-center mb-8">
-                            <span className="text-4xl mb-4 block">🌸</span>
-                            <h1 className="text-2xl font-bold mb-2">Bem-vinda à sua nova jornada</h1>
-                            <p className="text-slate-500 text-sm">Vamos configurar seu diário de forma suave.</p>
+                    <form onSubmit={(e) => e.preventDefault()} className="z-10 w-full max-w-sm mx-auto">
+                        <div className="flex gap-2 mb-8">
+                            {[1,2,3].map(i => (
+                                <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-brand-rose' : 'bg-slate-100'}`}></div>
+                            ))}
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        {step === 1 && (
+                            <div className="animate-slide-up">
+                                <h1 className="text-3xl font-bold mb-4">Como devemos te chamar?</h1>
+                                <p className="text-slate-500 mb-8">Vamos criar um espaço seguro e personalizado só seu.</p>
+                                <input type="text" placeholder="Seu nome ou apelido" value={formData.name}
+                                    onChange={e => setFormData({...formData, name: e.target.value})}
+                                    className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none mb-4 text-lg" required />
+                                <button type="button" onClick={next} disabled={!formData.name}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50 transition-all active:scale-95">Continuar</button>
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div className="animate-slide-up">
+                                <h1 className="text-3xl font-bold mb-4">Sobre seu corpo</h1>
+                                <p className="text-slate-500 mb-6">Esses dados geram suas <b>metas exatas de água e jejum</b>.</p>
+                                <div className="space-y-4 mb-8">
+                                    <input type="number" placeholder="Idade (anos)" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})}
+                                        className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-rose outline-none" required />
+                                    <div className="flex gap-4">
+                                        <input type="number" step="0.1" placeholder="Peso (kg)" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})}
+                                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" required />
+                                        <input type="number" placeholder="Altura (cm)" value={formData.height} onChange={e => setFormData({...formData, height: e.target.value})}
+                                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none" required />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setStep(1)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
+                                    <button type="button" onClick={next} disabled={!formData.age || !formData.weight || !formData.height}
+                                        className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50 transition-all active:scale-95">Continuar</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div className="animate-slide-up">
+                                <h1 className="text-3xl font-bold mb-4">Qual seu maior foco?</h1>
+                                <p className="text-slate-500 mb-8">Isso define a intensidade do seu protocolo de 21 dias.</p>
+                                <div className="space-y-3 mb-8">
+                                    {[['emagrecer_rapido', '🔥 Emagrecimento Intenso (Jejum 16h)'], ['manutencao', '⚖️ Manter e Tonificar (Jejum 14h)'], ['saude', '✨ Saúde & Energia (Jejum 12h)']].map(([val, label]) => (
+                                        <div key={val} onClick={() => setFormData({...formData, objective: val})}
+                                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.objective === val ? 'border-brand-rose bg-rose-50 font-bold text-brand-rose' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                                            {label}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setStep(2)} className="py-4 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold active:scale-95">Voltar</button>
+                                    <button type="button" onClick={handleFinish}
+                                        className="flex-1 py-4 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-2xl font-bold shadow-lg shadow-brand-rose/30 hover:shadow-xl active:scale-95 transition-all">
+                                        Gerar Plano Personalizado
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </form>
+                </div>
+            );
+        }
+
+        // 2. TELA DIÁRIO (O Planner de 21 Dias Oficial)
+        function DiaryTab({ user, logs, setLogs }) {
+            const today = getTodayStr();
+            const log = logs[today] || { 
+                weight: '', 
+                water: 0, 
+                fastingStart: '', 
+                fastingEnd: '', 
+                scales: { energy: 5, hunger: 5, mood: 5, sleep: 5, bloat: 5 }, 
+                notes: '', 
+                habits: {} 
+            };
+
+            const updateLog = (field, value) => {
+                setLogs(prev => ({ ...prev, [today]: { ...log, [field]: value } }));
+            };
+
+            const updateScale = (metric, val) => {
+                updateLog('scales', { ...log.scales, [metric]: parseInt(val) });
+            };
+
+            const toggleHabit = (habitId) => {
+                updateLog('habits', { ...log.habits, [habitId]: !log.habits[habitId] });
+            };
+
+            // Cálculo do Dia da Jornada
+            const start = new Date(user.startDate);
+            const current = new Date(today);
+            const diffTime = Math.abs(current - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            const journeyDay = Math.min(diffDays, 21); // Trava em 21
+
+            return (
+                <div className="animate-slide-up space-y-6">
+                    <div className="flex justify-between items-center px-1">
+                        <h2 className="text-xl font-bold">Resumo Diário</h2>
+                        <span className="bg-brand-rose text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                            Dia {journeyDay} / 21
+                        </span>
+                    </div>
+
+                    {/* Bloco 1: Peso e Água */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="glass-card p-4 rounded-2xl">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Peso da Manhã</label>
+                            <div className="flex items-end gap-1">
+                                <input type="number" step="0.1" placeholder="Ex: 68.5" value={log.weight} onChange={e => updateLog('weight', e.target.value)}
+                                    className="w-full text-2xl font-bold bg-transparent border-b-2 border-slate-200 focus:border-brand-rose outline-none pb-1" />
+                                <span className="text-slate-400 font-medium pb-2">kg</span>
+                            </div>
+                        </div>
+                        
+                        <div className="glass-card p-4 rounded-2xl flex flex-col justify-between">
                             <div>
-                                <label className="block text-sm font-medium mb-1 pl-2">Como quer ser chamada?</label>
-                                <input required type="text" placeholder="Seu nome" 
-                                    className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-rose-400 outline-none transition-all shadow-inner"
-                                    value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Água Diária</label>
+                                <span className="text-[10px] text-brand-rose font-medium">Meta: {(user.waterTarget/1000).toFixed(1)}L</span>
                             </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium mb-1 pl-2">Peso atual (kg)</label>
-                                    <input required type="number" step="0.1" placeholder="Ex: 75.0" 
-                                        className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-rose-400 outline-none shadow-inner"
-                                        value={form.initialWeight} onChange={e => setForm({...form, initialWeight: e.target.value})} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium mb-1 pl-2">Meta (kg)</label>
-                                    <input required type="number" step="0.1" placeholder="Ex: 65.0" 
-                                        className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-indigo-400 outline-none shadow-inner"
-                                        value={form.goalWeight} onChange={e => setForm({...form, goalWeight: e.target.value})} />
-                                </div>
+                            <div className="flex items-center gap-2 mt-2">
+                                <button onClick={() => updateLog('water', Math.max(0, log.water - 250))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 active:scale-90 transition-transform">-</button>
+                                <div className="flex-1 text-center font-bold text-blue-500 text-lg">{log.water}<span className="text-xs font-normal">ml</span></div>
+                                <button onClick={() => updateLog('water', log.water + 250)} className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 active:scale-90 transition-transform">+</button>
                             </div>
-                            
-                            <button type="submit" className="w-full py-4 mt-4 bg-gradient-to-r from-rose-400 to-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all active:scale-95">
-                                Começar Jornada ✨
-                            </button>
-                        </form>
+                        </div>
+                    </div>
+
+                    {/* Bloco 2: Janela de Jejum */}
+                    <div className="glass-card p-5 rounded-3xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-sm">Registro de Jejum</h3>
+                            <span className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-600 font-medium">Meta: {user.fastingHours}h</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Início (Última Refeição)</label>
+                                <input type="time" value={log.fastingStart} onChange={e => updateLog('fastingStart', e.target.value)} 
+                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Fim (Quebra do Jejum)</label>
+                                <input type="time" value={log.fastingEnd} onChange={e => updateLog('fastingEnd', e.target.value)} 
+                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bloco 3: Check-in de Sensações */}
+                    <div className="glass-card p-5 rounded-3xl">
+                        <h3 className="font-bold mb-4 text-sm">Como o corpo reagiu hoje?</h3>
+                        <div className="space-y-5">
+                            <SliderRow icon="⚡" label="Energia" value={log.scales.energy} onChange={v => updateScale('energy', v)} />
+                            <SliderRow icon="🍽️" label="Fome" value={log.scales.hunger} onChange={v => updateScale('hunger', v)} reverseColor />
+                            <SliderRow icon="😊" label="Humor" value={log.scales.mood} onChange={v => updateScale('mood', v)} />
+                            <SliderRow icon="😴" label="Qualidade do Sono" value={log.scales.sleep} onChange={v => updateScale('sleep', v)} />
+                            <SliderRow icon="🎈" label="Inchaço Abdominal" value={log.scales.bloat} onChange={v => updateScale('bloat', v)} reverseColor />
+                        </div>
+                    </div>
+
+                    {/* Bloco 4: Hábitos Diários */}
+                    <div className="glass-card p-5 rounded-3xl">
+                        <h3 className="font-bold mb-3 text-sm">Checklist Inteligente</h3>
+                        <div className="space-y-3">
+                            <CheckItem label={`Cumpri as ${user.fastingHours}h de jejum recomendadas`} checked={log.habits['jejum']} onClick={() => toggleHabit('jejum')} />
+                            <CheckItem label={`Bebi os ${(user.waterTarget/1000).toFixed(1)}L de água da minha meta`} checked={log.habits['agua']} onClick={() => toggleHabit('agua')} />
+                            <CheckItem label="Zero açúcar refinado e doces hoje" checked={log.habits['acucar']} onClick={() => toggleHabit('acucar')} />
+                            <CheckItem label="Fiz pelo menos 20min de movimento" checked={log.habits['treino']} onClick={() => toggleHabit('treino')} />
+                        </div>
+                    </div>
+
+                    {/* Bloco 5: Diário Livre */}
+                    <div className="glass-card p-5 rounded-3xl">
+                        <h3 className="font-bold mb-2 text-sm">Notas e Percepções</h3>
+                        <textarea rows="3" placeholder="Senti mais facilidade hoje? Tive dor de cabeça? Como me sinto com meu corpo?" value={log.notes} onChange={e => updateLog('notes', e.target.value)}
+                            className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-brand-rose resize-none transition-all"></textarea>
                     </div>
                 </div>
             );
         }
 
-        // 2. Tela Home
-        function HomeScreen({ user, fasting, setFasting, logs }) {
+        // 3. TELA TIMER (Jejum Intermitente Ativo)
+        function TimerTab({ user, fasting, setFasting, notify }) {
             const [now, setNow] = useState(Date.now());
 
             useEffect(() => {
-                if (fasting.isFasting) {
-                    const interval = setInterval(() => setNow(Date.now()), 1000);
-                    return () => clearInterval(interval);
+                let interval;
+                if (fasting.isActive) {
+                    interval = setInterval(() => setNow(Date.now()), 1000);
                 }
-            }, [fasting.isFasting]);
+                return () => clearInterval(interval);
+            }, [fasting.isActive]);
 
-            const toggleFasting = () => {
-                if (fasting.isFasting) {
-                    // Finaliza jejum
-                    setFasting({ isFasting: false, startTime: null });
-                } else {
-                    // Inicia jejum
-                    setFasting({ isFasting: true, startTime: Date.now() });
-                }
-            };
-
-            // Cálculos do Jejum
-            const elapsedHours = fasting.isFasting ? (now - fasting.startTime) / (1000 * 60 * 60) : 0;
-            const targetHours = 16; // Padrão 16h para UI visual
-            const progress = Math.min((elapsedHours / targetHours) * 100, 100);
-            
-            // Fases Metabólicas
-            let phase = "Alimentação";
-            let phaseColor = "text-emerald-500";
-            if(fasting.isFasting) {
-                if (elapsedHours < 4) { phase = "Açúcar no sangue caindo"; phaseColor = "text-blue-500"; }
-                else if (elapsedHours < 12) { phase = "Digestão & Estabilização"; phaseColor = "text-indigo-500"; }
-                else if (elapsedHours < 16) { phase = "🔥 Queima de Gordura"; phaseColor = "text-orange-500"; }
-                else if (elapsedHours < 24) { phase = "⚡ Cetose Leve"; phaseColor = "text-purple-500"; }
-                else { phase = "✨ Autofagia (Renovação)"; phaseColor = "text-rose-500"; }
-            }
+            const elapsedMs = fasting.isActive ? (now - fasting.startTime) : 0;
+            const elapsedHoursNum = elapsedMs / (1000 * 60 * 60);
+            const targetHours = user.fastingHours;
+            const progress = Math.min((elapsedHoursNum / targetHours) * 100, 100);
 
             const formatTime = (ms) => {
-                let totalSeconds = Math.floor(ms / 1000);
-                let hours = Math.floor(totalSeconds / 3600);
-                let minutes = Math.floor((totalSeconds % 3600) / 60);
-                let seconds = totalSeconds % 60;
-                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                let s = Math.floor((ms / 1000) % 60);
+                let m = Math.floor((ms / (1000 * 60)) % 60);
+                let h = Math.floor(ms / (1000 * 60 * 60));
+                return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
             };
 
-            // Renderizar mini-calendário da semana
-            const renderWeekHabits = () => {
-                const days = [];
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                
-                // Pega de Seg a Dom da semana atual
-                const dayOfWeek = today.getDay(); // 0=Dom, 1=Seg...
-                const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                
-                const monday = new Date(today);
-                monday.setDate(today.getDate() - distanceToMonday);
-
-                for(let i=0; i<7; i++) {
-                    const current = new Date(monday);
-                    current.setDate(monday.getDate() + i);
-                    const dateStr = new Date(current.getTime() - (current.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    const isToday = current.getTime() === today.getTime();
-                    const hasLog = !!logs[dateStr];
-                    const isFuture = current.getTime() > today.getTime();
-
-                    const dayNames = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-                    const dayLabel = dayNames[current.getDay()];
-
-                    days.push(
-                        <div key={i} className="flex flex-col items-center gap-2">
-                            <span className="text-xs text-slate-400 font-medium">{dayLabel}</span>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                                hasLog ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md' : 
-                                isToday ? 'border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 
-                                'bg-slate-100 dark:bg-slate-800'
-                            }`}>
-                                {hasLog ? <Icons.Check /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>}
-                            </div>
-                        </div>
-                    );
+            const toggleFasting = () => {
+                if (fasting.isActive) {
+                    setFasting({ isActive: false, startTime: null });
+                    notify("Janela de Alimentação Aberta!", "Parabéns! Você concluiu seu protocolo de jejum com sucesso.");
+                } else {
+                    setFasting({ isActive: true, startTime: Date.now() });
+                    notify("Jejum Iniciado!", `Sua meta é de ${targetHours} horas. O corpo começou a limpeza celular.`);
                 }
-                return days;
             };
 
             return (
-                <div className="space-y-6 animate-slide-up">
-                    {/* Card Jejum */}
-                    <div className="glass p-6 rounded-3xl text-center relative overflow-hidden shadow-sm">
-                        <h2 className="font-bold text-lg mb-6">Status do Jejum</h2>
-                        
-                        {/* Timer Circular */}
-                        <div className="relative w-48 h-48 mx-auto mb-6 flex items-center justify-center">
-                            <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100">
-                                <circle className="text-slate-200 dark:text-slate-700 stroke-current" strokeWidth="6" cx="50" cy="50" r="45" fill="transparent"></circle>
-                                <circle 
-                                    className="text-indigo-500 progress-ring__circle stroke-current drop-shadow-md" 
-                                    strokeWidth="6" strokeLinecap="round" cx="50" cy="50" r="45" fill="transparent"
-                                    strokeDasharray="283" 
-                                    strokeDashoffset={283 - (283 * progress) / 100}
-                                ></circle>
+                <div className="animate-slide-up space-y-6">
+                    <div className="glass-card p-6 rounded-3xl text-center relative overflow-hidden mt-2">
+                        <div className="absolute top-0 right-0 p-4 opacity-10"><Icon.Clock /></div>
+                        <h2 className="font-bold text-slate-700 mb-1">Seu Protocolo</h2>
+                        <p className="text-sm text-brand-rose font-semibold mb-8">{targetHours} Horas • Queima Acelerada</p>
+
+                        <div className="relative w-64 h-64 mx-auto mb-10 flex items-center justify-center">
+                            {/* Anel de Progresso SVG */}
+                            <svg className="absolute w-full h-full drop-shadow-sm" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" className="stroke-slate-100" strokeWidth="3"></circle>
+                                <circle cx="50" cy="50" r="45" fill="none" className="stroke-brand-rose progress-ring__circle" 
+                                    strokeWidth="5" strokeLinecap="round" strokeDasharray="283" 
+                                    strokeDashoffset={283 - (283 * progress) / 100}></circle>
                             </svg>
                             <div className="z-10 flex flex-col items-center">
-                                {fasting.isFasting ? (
+                                {fasting.isActive ? (
                                     <>
-                                        <span className="text-3xl font-bold tracking-tighter tabular-nums">
-                                            {formatTime(now - fasting.startTime)}
-                                        </span>
-                                        <span className="text-xs font-medium uppercase tracking-wider text-slate-500 mt-1">Horas</span>
+                                        <span className="text-5xl font-extrabold tracking-tighter text-slate-800">{formatTime(elapsedMs)}</span>
+                                        {progress >= 100 ? 
+                                            <span className="text-sm font-bold text-emerald-500 mt-3 bg-emerald-50 px-3 py-1 rounded-full animate-pulse shadow-sm">Meta Atingida! 🎉</span> :
+                                            <span className="text-sm text-slate-500 mt-3 font-medium">Faltam {Math.max(0, targetHours - elapsedHoursNum).toFixed(1)}h</span>
+                                        }
                                     </>
                                 ) : (
-                                    <span className="text-slate-400 font-medium">Toque para<br/>iniciar</span>
+                                    <>
+                                        <span className="text-5xl mb-3">🌙</span>
+                                        <span className="text-sm font-medium text-slate-500 px-4">Pronta para iniciar a autofagia celular?</span>
+                                    </>
                                 )}
                             </div>
                         </div>
 
-                        {fasting.isFasting && (
-                            <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 py-2 px-4 rounded-xl inline-block">
-                                <span className="text-xs text-slate-500 block mb-1">Fase atual:</span>
-                                <span className={`font-bold text-sm ${phaseColor} animate-pulse`}>{phase}</span>
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={toggleFasting}
-                            className={`w-full py-4 rounded-2xl font-bold transition-all transform active:scale-95 shadow-md ${
-                                fasting.isFasting 
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' 
-                                : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-lg'
-                            }`}
-                        >
-                            {fasting.isFasting ? 'Encerrar Jejum' : 'Iniciar Jejum Agora'}
+                        <button onClick={toggleFasting} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 ${
+                            fasting.isActive 
+                                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                                : 'bg-gradient-to-r from-brand-rose to-brand-lavender text-white shadow-lg shadow-brand-rose/30'
+                        }`}>
+                            {fasting.isActive ? 'Quebrar Jejum' : 'Iniciar Jejum Agora'}
                         </button>
                     </div>
 
-                    {/* Card Hábitos */}
-                    <div className="glass p-6 rounded-3xl shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="font-bold">Hábitos da Semana</h2>
-                            <span className="text-xs text-emerald-500 font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-md">Consistência</span>
-                        </div>
-                        <div className="flex justify-between">
-                            {renderWeekHabits()}
+                    {/* Cards de Dicas */}
+                    <div className="grid grid-cols-1 gap-3">
+                        <div className="bg-white/60 rounded-2xl p-4 flex gap-4 items-center border border-slate-100 shadow-sm">
+                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">💧</div>
+                            <p className="text-[13px] text-slate-600 leading-snug">
+                                <b>Pode no jejum:</b> Água, café puro e chás sem adoçante. Eles ajudam a driblar a fome!
+                            </p>
                         </div>
                     </div>
                 </div>
             );
         }
 
-        // 3. Tela Bio-Hub
-        function BioHubScreen({ bio, setBio, user }) {
-            const [localBio, setLocalBio] = useState(bio);
-            const [showResults, setShowResults] = useState(false);
+        // 4. TELA DASHBOARD (Métricas e Evolução)
+        function DashboardTab({ user, logs }) {
+            const chartData = useMemo(() => {
+                const data = [];
+                const start = new Date(user.startDate);
+                
+                for(let i=0; i<21; i++) {
+                    const d = new Date(start);
+                    d.setDate(d.getDate() + i);
+                    const dateStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    const log = logs[dateStr];
+                    
+                    if (log && log.weight) {
+                        data.push({ day: `Dia ${i+1}`, peso: parseFloat(log.weight) });
+                    }
+                }
+                return data.length > 0 ? data : [{ day: 'Dia 1', peso: parseFloat(user.weight) }];
+            }, [logs, user]);
 
-            // Cálculos
-            const weight = parseFloat(localBio.weight) || 0;
-            const height = parseFloat(localBio.height) || 0;
-            const age = parseFloat(localBio.age) || 0;
-            
-            // IMC
-            const imc = (weight && height) ? (weight / Math.pow(height/100, 2)).toFixed(1) : 0;
-            let imcStatus = "Normal";
-            let imcColor = "bg-emerald-500";
-            let markerPos = 50; // Porcentagem na barra
-            
-            if(imc > 0) {
-                if(imc < 18.5) { imcStatus = "Abaixo do peso"; imcColor = "bg-blue-400"; markerPos = 15; }
-                else if(imc < 25) { imcStatus = "Peso Ideal"; imcColor = "bg-emerald-500"; markerPos = 50; }
-                else if(imc < 30) { imcStatus = "Sobrepeso"; imcColor = "bg-yellow-400"; markerPos = 75; }
-                else { imcStatus = "Atenção"; imcColor = "bg-rose-500"; markerPos = 95; }
+            const stats = useMemo(() => {
+                const daysLogged = Object.keys(logs).length;
+                let fastingSuccess = 0;
+                let totalWater = 0;
+
+                Object.values(logs).forEach(log => {
+                    if(log.habits && log.habits['jejum']) fastingSuccess++;
+                    totalWater += (log.water || 0);
+                });
+
+                const fastingPercent = daysLogged ? Math.round((fastingSuccess / daysLogged) * 100) : 0;
+                const avgWater = daysLogged ? Math.round(totalWater / daysLogged) : 0;
+
+                return { fastingPercent, avgWater, daysLogged };
+            }, [logs]);
+
+            return (
+                <div className="animate-slide-up space-y-6">
+                    <h2 className="text-xl font-bold px-1 mb-2">Visão Geral do Plano</h2>
+
+                    {/* Gráfico de Evolução de Peso */}
+                    <div className="glass-card p-5 rounded-3xl h-64">
+                        <h3 className="font-bold text-sm mb-4 text-slate-600 flex items-center gap-2">
+                            <Icon.Activity /> Evolução de Peso Corporal (kg)
+                        </h3>
+                        <ResponsiveContainer width="100%" height="80%">
+                            <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#F472B6" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#F472B6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                                <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                                <Area type="monotone" dataKey="peso" stroke="#F472B6" strokeWidth={3} fillOpacity={1} fill="url(#colorPeso)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* KPIs e Comparação com Metas */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="glass-card p-5 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                            <div className="absolute -right-4 -top-4 text-slate-100 opacity-50 scale-150"><Icon.Target /></div>
+                            <span className="text-3xl font-bold text-brand-lavender relative z-10">{stats.fastingPercent}%</span>
+                            <span className="text-xs text-slate-500 font-medium mt-1 relative z-10">Adesão ao Jejum</span>
+                            <span className="text-[9px] font-bold text-slate-400 mt-1 bg-slate-50 px-2 py-0.5 rounded uppercase">Meta: {user.fastingHours}h/dia</span>
+                        </div>
+                        <div className="glass-card p-5 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                            <div className="absolute -right-4 -bottom-4 text-slate-100 opacity-50 scale-150 text-6xl">💧</div>
+                            <span className="text-3xl font-bold text-blue-500 relative z-10">{(stats.avgWater/1000).toFixed(1)}L</span>
+                            <span className="text-xs text-slate-500 font-medium mt-1 relative z-10">Média de Água/Dia</span>
+                            <span className={`text-[9px] font-bold mt-1 px-2 py-0.5 rounded uppercase ${stats.avgWater >= user.waterTarget ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                                Meta: {(user.waterTarget/1000).toFixed(1)}L
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-brand-rose to-brand-lavender p-[2px] rounded-3xl shadow-lg shadow-brand-rose/20">
+                        <div className="bg-white/95 rounded-[22px] p-5">
+                            <p className="font-semibold text-sm text-slate-700 leading-relaxed">
+                                {stats.fastingPercent > 80 
+                                    ? "🌟 Você está impecável! A consistência no jejum está ativando a queima acelerada exatamente como planejado." 
+                                    : "💡 Lembre-se: O segredo não é a perfeição, é a constância. Volte para o protocolo amanhã. Um dia de cada vez!"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 5. TELA BIBLIOTECA (Materiais In-App)
+        function LibraryTab() {
+            const books = [
+                { title: "Plano 21 Dias", subtitle: "Jejum Inteligente Oficial", color: "from-brand-rose to-brand-lavender", emoji: "📚" },
+                { title: "Mente Magra", subtitle: "Destrave Seus Bloqueios", color: "from-amber-400 to-orange-500", emoji: "🧠" },
+                { title: "Coma Certo", subtitle: "Guia Completo de Alimentação", color: "from-emerald-400 to-teal-500", emoji: "🥗" },
+                { title: "Desinche em 7 Dias", subtitle: "Estratégia Seca Barriga", color: "from-blue-400 to-indigo-500", emoji: "💧" },
+            ];
+
+            const handleDownload = () => alert("Na versão final, isso baixará o PDF em cache para leitura offline!");
+
+            return (
+                <div className="animate-slide-up space-y-6">
+                    <div>
+                        <h2 className="text-xl font-bold px-1 mb-1">Biblioteca VIP</h2>
+                        <p className="text-sm text-slate-500 px-1 mb-6">Acesse seu material a qualquer momento, mesmo sem internet.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                        {books.map((book, i) => (
+                            <div key={i} onClick={handleDownload} className="bg-white p-4 rounded-2xl flex items-center justify-between cursor-pointer shadow-sm border border-slate-100 active:scale-95 transition-transform group">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${book.color} flex items-center justify-center text-2xl shadow-inner`}>
+                                        {book.emoji}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-800 text-sm">{book.title}</h3>
+                                        <p className="text-xs text-slate-500 font-medium mt-0.5">{book.subtitle}</p>
+                                    </div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-brand-rose group-hover:bg-rose-50 transition-colors">
+                                    <Icon.Download />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Utils UI (Componentes Reutilizáveis)
+        function SliderRow({ icon, label, value, onChange, reverseColor = false }) {
+            let colorClass = 'text-yellow-500';
+            if (!reverseColor) {
+                if (value >= 8) colorClass = 'text-emerald-500';
+                else if (value <= 3) colorClass = 'text-rose-500';
+            } else {
+                if (value >= 8) colorClass = 'text-rose-500'; 
+                else if (value <= 3) colorClass = 'text-emerald-500';
             }
 
-            // TDEE (Mifflin-St Jeor) Mulheres
-            const basal = (10 * weight) + (6.25 * height) - (5 * age) - 161;
-            let tdee = basal * 1.2; // Sedentária
-            
-            let calories = Math.round(tdee);
-            if (localBio.objective === 'emagrecer') calories -= 400; // Déficit leve
-            if (localBio.objective === 'ganhar') calories += 300;
-
-            // Água e Proteína
-            const water = Math.round(weight * 35); // ml
-            let proteinFactor = localBio.objective === 'emagrecer' ? 1.8 : (localBio.objective === 'ganhar' ? 2.0 : 1.2);
-            const protein = Math.round(weight * proteinFactor);
-
-            const handleSave = (e) => {
-                e.preventDefault();
-                setBio(localBio);
-                setShowResults(true);
-            };
-
             return (
-                <div className="space-y-6 animate-slide-up">
-                    <div className="glass p-6 rounded-3xl">
-                        <h2 className="font-bold text-lg mb-4">Seu Perfil Biológico</h2>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Peso (kg)</label>
-                                    <input required type="number" step="0.1" value={localBio.weight} onChange={e => setLocalBio({...localBio, weight: e.target.value})} 
-                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Altura (cm)</label>
-                                    <input required type="number" value={localBio.height} onChange={e => setLocalBio({...localBio, height: e.target.value})} 
-                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Idade</label>
-                                    <input required type="number" value={localBio.age} onChange={e => setLocalBio({...localBio, age: e.target.value})} 
-                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Objetivo</label>
-                                    <select value={localBio.objective} onChange={e => setLocalBio({...localBio, objective: e.target.value})}
-                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 appearance-none text-sm">
-                                        <option value="emagrecer">Emagrecer</option>
-                                        <option value="manter">Manter peso</option>
-                                        <option value="ganhar">Ganhar massa</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button type="submit" className="w-full py-3 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 font-bold rounded-xl active:scale-95 transition-transform">
-                                Calcular Meu Plano
-                            </button>
-                        </form>
+                <div>
+                    <div className="flex justify-between text-sm mb-1">
+                        <span className="flex gap-2 items-center text-slate-600 font-medium"><span className="text-lg">{icon}</span> {label}</span>
+                        <span className={`font-bold ${colorClass}`}>{value}/10</span>
                     </div>
-
-                    {showResults && age > 0 && height > 0 && (
-                        <div className="space-y-4 animate-fade-in">
-                            <h3 className="font-bold text-lg px-2">Suas Metas Diárias ✨</h3>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center">
-                                    <span className="text-2xl mb-1">💧</span>
-                                    <span className="text-sm text-slate-500">Água</span>
-                                    <span className="font-bold text-xl">{water} <span className="text-sm font-normal">ml</span></span>
-                                </div>
-                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center">
-                                    <span className="text-2xl mb-1">🥩</span>
-                                    <span className="text-sm text-slate-500">Proteína</span>
-                                    <span className="font-bold text-xl">{protein} <span className="text-sm font-normal">g</span></span>
-                                </div>
-                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center col-span-2">
-                                    <span className="text-sm text-slate-500 mb-1">Calorias Recomendadas (Aprox.)</span>
-                                    <span className="font-bold text-3xl text-indigo-500">{calories} <span className="text-base font-normal text-slate-500">kcal/dia</span></span>
-                                    <p className="text-xs text-slate-400 mt-2">Baseado no seu objetivo de forma suave.</p>
-                                </div>
-                            </div>
-
-                            {/* Card IMC Visual */}
-                            <div className="glass p-5 rounded-3xl">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-sm font-medium">Seu IMC: <span className="font-bold">{imc}</span></span>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-md text-white ${imcColor}`}>{imcStatus}</span>
-                                </div>
-                                <div className="relative h-3 rounded-full bg-slate-200 flex overflow-hidden">
-                                    <div className="h-full w-[20%] bg-blue-300"></div>
-                                    <div className="h-full w-[40%] bg-emerald-400"></div>
-                                    <div className="h-full w-[20%] bg-yellow-400"></div>
-                                    <div className="h-full w-[20%] bg-rose-400"></div>
-                                </div>
-                                {/* Marker indicator */}
-                                <div className="relative mt-2 h-4">
-                                    <div className="absolute top-0 w-3 h-3 bg-slate-800 dark:bg-white rounded-full transform -translate-x-1.5 transition-all duration-1000" style={{ left: `${markerPos}%` }}></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <input type="range" min="1" max="10" value={value} onChange={e => onChange(e.target.value)} />
                 </div>
             );
         }
 
-        // 4. Tela de Registro
-        function RegisterScreen({ logs, setLogs, setActiveTab }) {
-            const today = getTodayDateString();
-            const existingLog = logs[today] || {};
-            
-            const [form, setForm] = useState({
-                weight: existingLog.weight || '',
-                fastingTime: existingLog.fastingTime || '',
-                food: existingLog.food || '',
-                water: existingLog.water || 0,
-                cycle: existingLog.cycle || 'folicular'
-            });
-
-            const [showSuccess, setShowSuccess] = useState(false);
-
-            // Máscara de tempo HH:MM
-            const handleTimeChange = (e) => {
-                let val = e.target.value.replace(/\D/g, '');
-                if (val.length > 2) {
-                    val = val.substring(0, 2) + ':' + val.substring(2, 4);
-                }
-                setForm({...form, fastingTime: val});
-            };
-
-            const handleSave = (e) => {
-                e.preventDefault();
-                setLogs({ ...logs, [today]: form });
-                setShowSuccess(true);
-                setTimeout(() => {
-                    setShowSuccess(false);
-                    setActiveTab('home');
-                }, 1500);
-            };
-
+        function CheckItem({ label, checked, onClick }) {
             return (
-                <div className="animate-slide-up">
-                    {showSuccess ? (
-                        <div className="glass p-10 rounded-3xl flex flex-col items-center justify-center text-center animate-fade-in h-[60vh]">
-                            <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
-                                <span className="text-4xl">✨</span>
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2">Registro Salvo!</h2>
-                            <p className="text-slate-500">Um dia de cada vez, amiga. Você está indo super bem!</p>
-                        </div>
-                    ) : (
-                        <div className="glass p-6 rounded-3xl">
-                            <h2 className="font-bold text-xl mb-6">O que rolou hoje? 📝</h2>
-                            <form onSubmit={handleSave} className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 pl-1">Peso Hoje (kg)</label>
-                                        <input type="number" step="0.1" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} 
-                                            className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400" placeholder="Ex: 68.5" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 pl-1">Tempo de Jejum</label>
-                                        <input type="text" value={form.fastingTime} onChange={handleTimeChange} placeholder="HH:MM" 
-                                            className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 text-center tracking-widest font-mono" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 pl-1">Como você se alimentou?</label>
-                                    <textarea value={form.food} onChange={e => setForm({...form, food: e.target.value})} rows="3"
-                                        className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 resize-none"
-                                        placeholder="Comi comida de verdade, evitei açúcar..."></textarea>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2 pl-1">Copos de Água (250ml)</label>
-                                    <div className="flex items-center gap-4 bg-white/50 dark:bg-slate-800/50 p-2 rounded-2xl">
-                                        <button type="button" onClick={() => setForm({...form, water: Math.max(0, form.water - 1)})} className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 rounded-xl shadow-sm text-xl font-bold active:scale-95">-</button>
-                                        <div className="flex-1 text-center font-bold text-2xl text-blue-500">
-                                            {form.water} <span className="text-sm font-normal text-slate-400">copos</span>
-                                        </div>
-                                        <button type="button" onClick={() => setForm({...form, water: form.water + 1})} className="w-12 h-12 flex items-center justify-center bg-blue-500 text-white rounded-xl shadow-sm text-xl font-bold active:scale-95">+</button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 pl-1">Fase do Ciclo 🌸</label>
-                                    <select value={form.cycle} onChange={e => setForm({...form, cycle: e.target.value})}
-                                        className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 appearance-none">
-                                        <option value="folicular">🌱 Folicular (Energia subindo)</option>
-                                        <option value="ovulacao">🌸 Ovulação (Pico de energia)</option>
-                                        <option value="lutea">🍂 Lútea (Mais fome/cansaço)</option>
-                                        <option value="menstruacao">🩸 Menstruação (Descanso)</option>
-                                    </select>
-                                </div>
-
-                                <button type="submit" className="w-full py-4 bg-gradient-to-r from-rose-400 to-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all mt-4">
-                                    Salvar Registro de Hoje
-                                </button>
-                            </form>
-                        </div>
-                    )}
+                <div onClick={onClick} className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer active:scale-95 transition-all ${checked ? 'bg-slate-50 border-transparent' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0 ${checked ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-transparent'}`}>
+                        <Icon.Check />
+                    </div>
+                    <span className={`text-[13px] font-medium leading-snug ${checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{label}</span>
                 </div>
             );
         }
 
-        // 5. Tela SOS Calma
-        function SOSScreen() {
-            const [isActive, setIsActive] = useState(false);
-            const [text, setText] = useState("Toque para Respirar");
-
-            useEffect(() => {
-                let interval;
-                if(isActive) {
-                    setText("Inspire profundo...");
-                    let cycle = 0;
-                    interval = setInterval(() => {
-                        cycle++;
-                        if(cycle % 2 === 1) setText("Segure... Expire devagar...");
-                        else setText("Inspire profundo...");
-                    }, 4000);
-                } else {
-                    setText("Toque para Respirar");
-                }
-                return () => clearInterval(interval);
-            }, [isActive]);
-
+        function TabBtn({ icon, label, active, onClick }) {
             return (
-                <div className="animate-slide-up flex flex-col items-center justify-center min-h-[70vh]">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-2">SOS Calma 🧘‍♀️</h2>
-                        <p className="text-slate-500">Bateu a ansiedade ou vontade de comer sem fome? Pare por 1 minuto.</p>
-                    </div>
-
-                    <div 
-                        onClick={() => setIsActive(!isActive)}
-                        className="relative w-64 h-64 flex items-center justify-center cursor-pointer"
-                    >
-                        {/* Círculos de respiração */}
-                        <div className={`absolute w-full h-full bg-rose-200/50 dark:bg-rose-500/20 rounded-full transition-all duration-1000 ${isActive ? 'animate-breathe' : ''}`}></div>
-                        <div className={`absolute w-48 h-48 bg-indigo-200/50 dark:bg-indigo-500/20 rounded-full transition-all duration-1000 delay-75 ${isActive ? 'animate-breathe' : ''}`}></div>
-                        
-                        {/* Centro */}
-                        <div className="absolute w-32 h-32 glass rounded-full flex flex-col items-center justify-center text-center shadow-xl z-10 p-4">
-                            <span className="font-bold text-sm leading-tight text-slate-700 dark:text-slate-200">{text}</span>
-                        </div>
-                    </div>
-
-                    {isActive && (
-                        <p className="mt-12 text-center text-sm font-medium text-slate-500 animate-fade-in max-w-xs">
-                            "Nenhum doce vale mais que a paz de estar no controle da sua própria vida."
-                        </p>
-                    )}
-                </div>
-            );
-        }
-
-        // 6. Tela Mais
-        function MoreScreen({ darkMode, setDarkMode, logs, user, streak }) {
-            const [copied, setCopied] = useState(false);
-
-            const handleCopy = () => {
-                const text = `🌸 Diário de Evolução da ${user.name}\n🔥 Ofensiva: ${streak} dias de consistência!\n\n"Construindo minha melhor versão, um dia de cada vez." ✨`;
-                navigator.clipboard.writeText(text);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            };
-
-            return (
-                <div className="space-y-4 animate-slide-up">
-                    <h2 className="font-bold text-xl mb-4 pl-2">Configurações</h2>
-                    
-                    {/* Modo Escuro */}
-                    <div className="glass p-5 rounded-2xl flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-indigo-500">
-                                {darkMode ? <Icons.Moon /> : <Icons.Sun />}
-                            </div>
-                            <span className="font-medium">Modo Escuro</span>
-                        </div>
-                        <button 
-                            onClick={() => setDarkMode(!darkMode)}
-                            className={`w-14 h-8 rounded-full p-1 transition-colors ${darkMode ? 'bg-indigo-500' : 'bg-slate-300'}`}
-                        >
-                            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                        </button>
-                    </div>
-
-                    {/* Copiar Resumo */}
-                    <div onClick={handleCopy} className="glass p-5 rounded-2xl flex justify-between items-center cursor-pointer active:scale-95 transition-transform">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-rose-500">
-                                <Icons.Copy />
-                            </div>
-                            <div>
-                                <span className="font-medium block">Resumo para Stories</span>
-                                <span className="text-xs text-slate-500">Copie seu progresso para postar</span>
-                            </div>
-                        </div>
-                        {copied ? <span className="text-xs font-bold text-emerald-500">Copiado!</span> : <Icons.Check />}
-                    </div>
-
-                    {/* Instalação */}
-                    <div className="glass p-5 rounded-2xl mt-6">
-                        <h3 className="font-bold mb-3 flex items-center gap-2">📱 Como instalar este App</h3>
-                        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div className="bg-white/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                                <strong className="text-slate-800 dark:text-slate-200 block mb-1">No iPhone (Safari):</strong>
-                                <p>1. Toque no ícone de "Compartilhar" (quadrado com seta para cima) na barra inferior.</p>
-                                <p>2. Role para baixo e escolha <strong>"Adicionar à Tela de Início"</strong>.</p>
-                            </div>
-                            <div className="bg-white/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                                <strong className="text-slate-800 dark:text-slate-200 block mb-1">No Android (Chrome):</strong>
-                                <p>1. Toque nos 3 pontinhos no canto superior direito.</p>
-                                <p>2. Escolha <strong>"Adicionar à tela inicial"</strong> ou "Instalar aplicativo".</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p className="text-center text-xs text-slate-400 mt-8 pb-4">Feito com carinho ❤️ para você.</p>
-                </div>
-            );
-        }
-
-        // Componente Menor: Botão da Tab
-        function TabButton({ icon, label, active, onClick }) {
-            return (
-                <button 
-                    onClick={onClick}
-                    className={`flex flex-col items-center justify-center w-16 h-12 transition-colors ${
-                        active ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                    }`}
-                >
-                    <div className={`${active ? 'transform -translate-y-1 scale-110' : ''} transition-all duration-300`}>
+                <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 transition-colors ${active ? 'text-brand-rose' : 'text-slate-400 hover:text-slate-600'}`}>
+                    <div className={`${active ? 'transform -translate-y-1 scale-110 drop-shadow-md' : ''} transition-all duration-300`}>
                         {icon}
                     </div>
-                    <span className="text-[10px] font-medium mt-1">{label}</span>
+                    <span className="text-[10px] font-bold mt-1 tracking-wide">{label}</span>
                 </button>
             );
         }
 
-        // Renderiza o App
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // Inicialização React Segura
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(<App />);
+        }
     </script>
 </body>
 </html>
