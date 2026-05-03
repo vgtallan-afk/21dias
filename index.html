@@ -3,950 +3,836 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#F472B6">
+    <title>Diário de Evolução</title>
+    
+    <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Diário de Evolução">
-    <title>Diário de Evolução 🌸</title>
-    <!-- Tailwind CDN (único recurso externo permitido para polimento profissional - zero impacto no tamanho final) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F472B6">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192x192.png?text=DE">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Plus Jakarta Sans via Google Fonts (leve e moderna) -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        rose: { 50: '#fff1f2', 300: '#fda4af', 400: '#fb7185', 500: '#f43f5e' },
+                        lavender: { 50: '#eef2ff', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1' },
+                        dark: { bg: '#0f172a', card: '#1e293b', border: '#334155' }
+                    },
+                    animation: {
+                        'breathe': 'breathe 8s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        breathe: {
+                            '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
+                            '50%': { transform: 'scale(1.4)', opacity: '0.4' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
-        
-        :root {
-            --rose: #F472B6;
-            --lavender: #818CF8;
-        }
-        
-        * {
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #fdf4f7 0%, #f0f0ff 100%);
-        }
-        
-        .dark body {
-            background: linear-gradient(135deg, #1e1b2e 0%, #312e4a 100%);
-        }
-        
+        /* Glassmorphism utilities */
         .glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab-bar-glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
         }
-        
-        .dark .glass {
-            background: rgba(30, 27, 46, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        .dark .tab-bar-glass {
+            background: rgba(15, 23, 42, 0.85);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+        /* Hide scrollbar but keep functionality */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
         
-        .screen {
-            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .bottom-nav {
-            box-shadow: 0 -4px 20px -4px rgb(244 114 182);
-        }
-        
-        .circle-progress {
+
+        /* Circular Progress */
+        .progress-ring__circle {
             transition: stroke-dashoffset 0.35s;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
-        
-        .breathing-circle {
-            animation: breathe 4s infinite ease-in-out;
-        }
-        
-        .tab-active {
-            color: #F472B6;
-            border-top: 3px solid #F472B6;
-        }
-        
-        .success-toast {
-            animation: toastPop 0.3s ease forwards;
-        }
     </style>
 </head>
-<body class="min-h-screen pb-20 text-slate-700 dark:text-slate-200">
-    <!-- Tela de Setup Inicial (mostra só na primeira vez) -->
-    <div id="setup-screen" class="fixed inset-0 bg-gradient-to-br from-pink-100 to-indigo-100 dark:from-slate-900 dark:to-indigo-950 flex items-center justify-center z-50 p-6">
-        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-rose-400 to-lavender-400 text-white rounded-2xl text-4xl mb-4 shadow-inner">🌸</div>
-                <h1 class="text-4xl font-semibold text-slate-800 dark:text-white">Oi, amiga! 💕</h1>
-                <p class="text-xl text-rose-400 mt-2">Vamos começar sua jornada suave e leve?</p>
-            </div>
+<body class="bg-gradient-to-br from-rose-50 via-white to-lavender-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-500">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- SVGs INLINE PARA NÃO DEPENDER DE LIBS EXTERNAS ---
+        const Icons = {
+            Home: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+            Activity: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+            Plus: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+            Heart: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+            Menu: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            Check: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>,
+            Moon: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+            Sun: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+            Copy: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        };
+
+        // --- UTILS ---
+        const getTodayDateString = () => {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+        };
+
+        function App() {
+            // --- STATE MANAGEMENT ---
+            const [isLoaded, setIsLoaded] = useState(false);
+            const [user, setUser] = useState({ name: '', initialWeight: '', goalWeight: '', setupDone: false });
+            const [darkMode, setDarkMode] = useState(false);
+            const [activeTab, setActiveTab] = useState('home');
             
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium mb-2 text-slate-600 dark:text-slate-300">Como quer ser chamada?</label>
-                    <input id="setup-name" type="text" 
-                           class="glass w-full px-5 py-4 rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
-                           placeholder="ex: Julia, Manu, Lívia..." value="Amiga">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-2 text-slate-600 dark:text-slate-300">Peso inicial (kg)</label>
-                        <input id="setup-peso-inicial" type="number" step="0.1" 
-                               class="glass w-full px-5 py-4 rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
-                               placeholder="68.5">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-2 text-slate-600 dark:text-slate-300">Peso desejado (kg)</label>
-                        <input id="setup-peso-desejado" type="number" step="0.1" 
-                               class="glass w-full px-5 py-4 rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
-                               placeholder="58">
-                    </div>
-                </div>
-                
-                <button onclick="startJourney()" 
-                        class="w-full bg-gradient-to-r from-rose-400 to-lavender-400 hover:from-rose-500 hover:to-lavender-500 text-white font-semibold py-5 rounded-3xl text-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3">
-                    <span>Começar minha jornada 🌟</span>
-                </button>
-                
-                <p class="text-center text-xs text-slate-400 dark:text-slate-500">Seu diário é totalmente privado e fica guardadinho no seu celular 💖</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- App Principal -->
-    <div id="main-app" class="hidden flex flex-col min-h-screen">
-        
-        <!-- Cabeçalho fixo -->
-        <div class="px-6 pt-8 pb-4 flex items-center justify-between bg-white/70 dark:bg-slate-900/70 glass sticky top-0 z-40">
-            <div class="flex items-center gap-3">
-                <div class="text-3xl">🌸</div>
-                <div>
-                    <h1 id="app-title" class="text-2xl font-semibold text-slate-800 dark:text-white">Diário de Evolução</h1>
-                    <p id="greeting" class="text-rose-400 text-sm font-medium"></p>
-                </div>
-            </div>
+            // Jejum
+            const [fasting, setFasting] = useState({ isFasting: false, startTime: null });
             
-            <div onclick="toggleDarkMode()" class="w-10 h-10 flex items-center justify-center rounded-2xl glass cursor-pointer active:scale-95 transition-all">
-                <span id="dark-icon" class="text-2xl">☀️</span>
-            </div>
-        </div>
+            // Registros
+            const [logs, setLogs] = useState({}); // { "YYYY-MM-DD": { weight, fastingTime, food, water, cycle } }
+            
+            // Perfil Biológico
+            const [bio, setBio] = useState({ weight: '', age: '', height: '', goalWeight: '', objective: 'emagrecer' });
 
-        <!-- Área de conteúdo (troca de telas) -->
-        <div id="content" class="flex-1 overflow-y-auto px-5 pb-8"></div>
+            // --- LOCAL STORAGE EFFECTS ---
+            useEffect(() => {
+                const savedUser = JSON.parse(localStorage.getItem('de_user'));
+                const savedTheme = localStorage.getItem('de_theme');
+                const savedFasting = JSON.parse(localStorage.getItem('de_fasting'));
+                const savedLogs = JSON.parse(localStorage.getItem('de_logs'));
+                const savedBio = JSON.parse(localStorage.getItem('de_bio'));
 
-        <!-- Barra inferior de navegação -->
-        <div class="fixed bottom-0 left-0 right-0 bottom-nav glass border-t border-white/60 dark:border-slate-700 flex items-center justify-around py-2 z-50 text-xs font-medium">
-            <button onclick="navigateTo(0)" id="nav-0" class="tab-active flex flex-col items-center gap-1 py-1 px-4">
-                <span class="text-2xl">🏠</span>
-                <span>Home</span>
-            </button>
-            <button onclick="navigateTo(1)" id="nav-1" class="flex flex-col items-center gap-1 py-1 px-4">
-                <span class="text-2xl">📊</span>
-                <span>Bio-Hub</span>
-            </button>
-            <button onclick="navigateTo(2)" id="nav-2" class="flex flex-col items-center gap-1 py-1 px-4">
-                <span class="text-2xl">📝</span>
-                <span>Registrar</span>
-            </button>
-            <button onclick="navigateTo(3)" id="nav-3" class="flex flex-col items-center gap-1 py-1 px-4">
-                <span class="text-2xl">🧘‍♀️</span>
-                <span>SOS</span>
-            </button>
-            <button onclick="navigateTo(4)" id="nav-4" class="flex flex-col items-center gap-1 py-1 px-4">
-                <span class="text-2xl">🌺</span>
-                <span>Mais</span>
-            </button>
-        </div>
-    </div>
+                if (savedUser) setUser(savedUser);
+                if (savedTheme === 'dark') setDarkMode(true);
+                if (savedFasting) setFasting(savedFasting);
+                if (savedLogs) setLogs(savedLogs);
+                if (savedBio) setBio(savedBio);
+                
+                setIsLoaded(true);
+            }, []);
 
-    <!-- Toast de feedback -->
-    <div id="toast" onclick="this.classList.add('hidden')" 
-         class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 glass text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 text-sm font-medium z-50 success-toast">
-    </div>
+            useEffect(() => {
+                if (isLoaded) {
+                    localStorage.setItem('de_user', JSON.stringify(user));
+                    localStorage.setItem('de_fasting', JSON.stringify(fasting));
+                    localStorage.setItem('de_logs', JSON.stringify(logs));
+                    localStorage.setItem('de_bio', JSON.stringify(bio));
+                    
+                    if (darkMode) {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('de_theme', 'dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('de_theme', 'light');
+                    }
+                }
+            }, [user, darkMode, fasting, logs, bio, isLoaded]);
 
-    <script>
-        // ==================== CONFIGURAÇÃO TAILWIND ====================
-        function initTailwind() {
-            return {
-                config(userConfig = {}) {
-                    return {
-                        configUser: userConfig,
-                        theme: {
-                            extend: {
-                                colors: {
-                                    rose: '#F472B6',
-                                    lavender: '#818CF8'
-                                }
+            if (!isLoaded) return null; // Previne hidratação incorreta
+
+            // --- CÁLCULOS GERAIS ---
+            const calculateStreak = () => {
+                let streak = 0;
+                let currentDate = new Date();
+                
+                // Zera as horas para comparar apenas datas
+                currentDate.setHours(0,0,0,0);
+
+                while (true) {
+                    const dateStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    if (logs[dateStr]) {
+                        streak++;
+                        currentDate.setDate(currentDate.getDate() - 1);
+                    } else {
+                        // Se não tem registro hoje, checa ontem antes de quebrar o streak
+                        if (streak === 0) {
+                            currentDate.setDate(currentDate.getDate() - 1);
+                            const yesterdayStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            if(logs[yesterdayStr]){
+                                streak++;
+                                currentDate.setDate(currentDate.getDate() - 1);
+                                continue;
                             }
                         }
+                        break;
                     }
-                },
-                theme: {
-                    extend: {}
                 }
+                return streak;
+            };
+
+            const streak = calculateStreak();
+
+            // --- RENDER CONDICIONAL ---
+            if (!user.setupDone) {
+                return <SetupScreen user={user} setUser={setUser} setBio={setBio} />;
             }
-        }
-        
-        // ==================== DADOS E LOCALSTORAGE ====================
-        let userData = {
-            name: '',
-            pesoInicial: 0,
-            pesoDesejado: 0
-        }
-        
-        let bioData = {
-            pesoAtual: 0,
-            idade: 0,
-            altura: 0,
-            objetivo: 'Emagrecer'
-        }
-        
-        let logs = {} // { '2026-05-03': { peso: 65.5, jejumStart: '08:30', comida: '...', agua: 8, ciclo: 'Folicular' } }
-        let currentFastingStart = null // ISO string do momento que começou o jejum atual
-        let darkMode = false
-        
-        function saveData() {
-            localStorage.setItem('diario_user', JSON.stringify(userData))
-            localStorage.setItem('diario_bio', JSON.stringify(bioData))
-            localStorage.setItem('diario_logs', JSON.stringify(logs))
-            localStorage.setItem('diario_fasting', currentFastingStart)
-            localStorage.setItem('diario_dark', darkMode)
-        }
-        
-        function loadData() {
-            const savedUser = localStorage.getItem('diario_user')
-            if (savedUser) userData = JSON.parse(savedUser)
-            
-            const savedBio = localStorage.getItem('diario_bio')
-            if (savedBio) bioData = JSON.parse(savedBio)
-            
-            const savedLogs = localStorage.getItem('diario_logs')
-            if (savedLogs) logs = JSON.parse(savedLogs)
-            
-            currentFastingStart = localStorage.getItem('diario_fasting')
-            
-            const savedDark = localStorage.getItem('diario_dark')
-            if (savedDark !== null) {
-                darkMode = JSON.parse(savedDark)
-                if (darkMode) document.documentElement.classList.add('dark')
-            }
-        }
-        
-        // ==================== CÁLCULOS ====================
-        function calculateStreak() {
-            const dates = Object.keys(logs).sort().reverse()
-            if (dates.length === 0) return 0
-            
-            let streak = 0
-            let currentDate = new Date()
-            currentDate.setHours(0, 0, 0, 0)
-            
-            for (let i = 0; i < dates.length; i++) {
-                const logDate = new Date(dates[i])
-                const diffDays = Math.floor((currentDate - logDate) / (1000 * 3600 * 24))
-                if (diffDays === i) streak++
-                else break
-            }
-            return streak
-        }
-        
-        function getFastingHours() {
-            if (!currentFastingStart) return 0
-            const start = new Date(currentFastingStart)
-            const diffMs = Date.now() - start.getTime()
-            return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)))
-        }
-        
-        function getCurrentPhase(hours) {
-            if (hours < 6) return { name: 'Alimentação 🌿', color: 'text-emerald-400', progress: Math.min(100, hours * 16.6) }
-            if (hours < 12) return { name: 'Queima de Gordura 🔥', color: 'text-orange-400', progress: Math.min(100, ((hours - 6) / 6) * 100) }
-            if (hours < 18) return { name: 'Cetose 💜', color: 'text-purple-400', progress: Math.min(100, ((hours - 12) / 6) * 100) }
-            return { name: 'Autofagia ✨', color: 'text-rose-400', progress: 100 }
-        }
-        
-        function calculateBioMetrics() {
-            const peso = parseFloat(bioData.pesoAtual) || 60
-            const alturaCm = parseFloat(bioData.altura) || 160
-            const idade = parseFloat(bioData.idade) || 30
-            
-            const imc = (peso / Math.pow(alturaCm / 100, 2)).toFixed(1)
-            
-            const agua = Math.round(peso * 35 / 100) * 100 // ml arredondado
-            const proteina = Math.round(peso * (bioData.objetivo === 'Emagrecer' ? 1.8 : 1.6))
-            
-            // BMR feminino simples (Mifflin-St Jeor)
-            let bmr = (10 * peso) + (6.25 * alturaCm) - (5 * idade) - 161
-            let calorias = Math.round(bmr * 1.2) // sedentária leve
-            if (bioData.objetivo === 'Emagrecer') calorias = Math.max(1200, calorias - 400)
-            if (bioData.objetivo === 'Ganhar peso ou massa') calorias = calorias + 300
-            
-            let imcStatus = ''
-            let imcColor = ''
-            if (imc < 18.5) { imcStatus = 'Abaixo do peso'; imcColor = 'bg-blue-400' }
-            else if (imc < 25) { imcStatus = 'Peso saudável'; imcColor = 'bg-emerald-400' }
-            else if (imc < 30) { imcStatus = 'Sobrepeso'; imcColor = 'bg-yellow-400' }
-            else { imcStatus = 'Obesidade'; imcColor = 'bg-red-400' }
-            
-            return { imc, agua, proteina, calorias, imcStatus, imcColor }
-        }
-        
-        // ==================== RENDERIZAÇÃO DE TELAS ====================
-        function renderHome() {
-            const streak = calculateStreak()
-            const hours = getFastingHours()
-            const phase = getCurrentPhase(hours)
-            const today = new Date().toISOString().split('T')[0]
-            const todayLog = logs[today]
-            
-            // Grid de hábitos da semana
-            let habitHTML = ''
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date()
-                d.setDate(d.getDate() - i)
-                const dateStr = d.toISOString().split('T')[0]
-                const hasLog = !!logs[dateStr]
-                habitHTML += `
-                <div class="flex flex-col items-center">
-                    <div class="w-9 h-9 rounded-2xl ${hasLog ? 'bg-gradient-to-br from-rose-400 to-lavender-400 text-white flex items-center justify-center text-xl shadow-inner' : 'glass flex items-center justify-center text-slate-300 text-xl'}">
-                        ${hasLog ? '✅' : '○'}
-                    </div>
-                    <span class="text-[10px] mt-1">${d.toLocaleDateString('pt-BR', {weekday: 'short'})}</span>
-                </div>`
-            }
-            
-            return `
-            <div class="screen max-w-xl mx-auto">
-                <!-- Saudação -->
-                <div class="mb-8">
-                    <p class="text-rose-400 font-medium">Olá, ${userData.name} 💖</p>
-                    <h2 class="text-4xl font-semibold leading-none">Como está se sentindo hoje?</h2>
-                </div>
-                
-                <!-- Streak -->
-                <div class="glass rounded-3xl p-6 flex items-center gap-6 mb-6">
-                    <div class="text-6xl">🔥</div>
-                    <div>
-                        <p class="text-sm font-medium tracking-widest uppercase">Sua ofensiva</p>
-                        <p class="text-7xl font-semibold text-rose-400">${streak} <span class="text-3xl">dias</span></p>
-                        <p class="text-slate-400 text-sm">Você está incrível, amiga!</p>
-                    </div>
-                </div>
-                
-                <!-- Jejum Atual -->
-                <div class="glass rounded-3xl p-8 mb-8">
-                    <div class="flex justify-between items-center mb-6">
+
+            return (
+                <div className="pb-24 max-w-md mx-auto w-full relative min-h-screen">
+                    {/* Header Padrão */}
+                    <header className="p-6 pt-8 flex justify-between items-center">
                         <div>
-                            <p class="font-semibold text-lg">Jejum atual</p>
-                            <p id="fasting-phase" class="${phase.color} font-medium">${phase.name}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Oi, maravilhosa! ✨</p>
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 to-indigo-500">
+                                {user.name}
+                            </h1>
                         </div>
-                        <div class="text-right">
-                            <div id="fasting-timer" class="text-5xl font-semibold tabular-nums">00:00</div>
-                            <p class="text-xs text-slate-400">desde o último registro</p>
+                        <div className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-full font-bold shadow-sm">
+                            <span>🔥</span> {streak}
                         </div>
-                    </div>
+                    </header>
+
+                    {/* Conteúdo Dinâmico das Abas */}
+                    <main className="px-6 pb-6">
+                        {activeTab === 'home' && <HomeScreen user={user} fasting={fasting} setFasting={setFasting} logs={logs} />}
+                        {activeTab === 'biohub' && <BioHubScreen bio={bio} setBio={setBio} user={user} />}
+                        {activeTab === 'registrar' && <RegisterScreen logs={logs} setLogs={setLogs} setActiveTab={setActiveTab} />}
+                        {activeTab === 'sos' && <SOSScreen />}
+                        {activeTab === 'mais' && <MoreScreen darkMode={darkMode} setDarkMode={setDarkMode} logs={logs} user={user} streak={streak} />}
+                    </main>
+
+                    {/* Tab Bar Fixa */}
+                    <nav className="fixed bottom-0 left-0 w-full tab-bar-glass pb-safe pt-2 px-2 z-50">
+                        <div className="max-w-md mx-auto flex justify-between items-center">
+                            <TabButton icon={<Icons.Home />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+                            <TabButton icon={<Icons.Activity />} label="Bio-Hub" active={activeTab === 'biohub'} onClick={() => setActiveTab('biohub')} />
+                            
+                            {/* Botão Centralizado Maior */}
+                            <button 
+                                onClick={() => setActiveTab('registrar')}
+                                className="relative -top-5 bg-gradient-to-tr from-rose-400 to-indigo-500 text-white p-4 rounded-full shadow-lg hover:shadow-rose-500/30 transition-transform active:scale-95"
+                            >
+                                <Icons.Plus />
+                            </button>
+                            
+                            <TabButton icon={<Icons.Heart />} label="SOS" active={activeTab === 'sos'} onClick={() => setActiveTab('sos')} />
+                            <TabButton icon={<Icons.Menu />} label="Mais" active={activeTab === 'mais'} onClick={() => setActiveTab('mais')} />
+                        </div>
+                    </nav>
+                </div>
+            );
+        }
+
+        // --- COMPONENTES DAS TELAS ---
+
+        // 1. Tela de Setup
+        function SetupScreen({ user, setUser, setBio }) {
+            const [form, setForm] = useState({ name: '', initialWeight: '', goalWeight: '' });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if(form.name && form.initialWeight && form.goalWeight) {
+                    setUser({ ...form, setupDone: true });
+                    // Pré-preenche o bio
+                    setBio(prev => ({ ...prev, weight: form.initialWeight, goalWeight: form.goalWeight }));
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+                    {/* Elementos decorativos */}
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
                     
-                    <!-- Círculo de progresso -->
-                    <div class="relative w-48 h-48 mx-auto">
-                        <svg class="w-48 h-48" viewBox="0 0 200 200">
-                            <circle cx="100" cy="100" r="85" fill="none" stroke="#e2e8f0" stroke-width="18" class="dark:stroke-slate-700"></circle>
-                            <circle id="progress-circle" cx="100" cy="100" r="85" fill="none" 
-                                    stroke="url(#gradient)" stroke-width="18" 
-                                    stroke-dasharray="534" stroke-dashoffset="${534 - (534 * phase.progress / 100)}"
-                                    class="circle-progress"></circle>
-                            <defs>
-                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#F472B6"/>
-                                    <stop offset="100%" stop-color="#818CF8"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div class="absolute inset-0 flex items-center justify-center text-center">
+                    <div className="w-full max-w-sm z-10 glass p-8 rounded-[2rem] shadow-2xl">
+                        <div className="text-center mb-8">
+                            <span className="text-4xl mb-4 block">🌸</span>
+                            <h1 className="text-2xl font-bold mb-2">Bem-vinda à sua nova jornada</h1>
+                            <p className="text-slate-500 text-sm">Vamos configurar seu diário de forma suave.</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <div class="text-4xl font-semibold">${hours}h</div>
-                                <div class="text-xs uppercase tracking-widest text-slate-400">em jejum</div>
+                                <label className="block text-sm font-medium mb-1 pl-2">Como quer ser chamada?</label>
+                                <input required type="text" placeholder="Seu nome" 
+                                    className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-rose-400 outline-none transition-all shadow-inner"
+                                    value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
                             </div>
-                        </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium mb-1 pl-2">Peso atual (kg)</label>
+                                    <input required type="number" step="0.1" placeholder="Ex: 75.0" 
+                                        className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-rose-400 outline-none shadow-inner"
+                                        value={form.initialWeight} onChange={e => setForm({...form, initialWeight: e.target.value})} />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium mb-1 pl-2">Meta (kg)</label>
+                                    <input required type="number" step="0.1" placeholder="Ex: 65.0" 
+                                        className="w-full p-4 rounded-2xl border-none bg-white/50 focus:ring-2 focus:ring-indigo-400 outline-none shadow-inner"
+                                        value={form.goalWeight} onChange={e => setForm({...form, goalWeight: e.target.value})} />
+                                </div>
+                            </div>
+                            
+                            <button type="submit" className="w-full py-4 mt-4 bg-gradient-to-r from-rose-400 to-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all active:scale-95">
+                                Começar Jornada ✨
+                            </button>
+                        </form>
                     </div>
                 </div>
-                
-                <!-- Hábitos da semana -->
-                <div class="glass rounded-3xl p-6">
-                    <p class="font-medium mb-4">Hábitos da semana</p>
-                    <div class="flex justify-between">${habitHTML}</div>
-                </div>
-                
-                ${todayLog ? `
-                <div class="mt-6 text-center text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 px-4 py-2 rounded-3xl inline-flex items-center gap-2 mx-auto">
-                    <span>✅ Hoje você já registrou!</span>
-                </div>` : ''}
-            </div>`
+            );
         }
-        
-        function renderBioHub() {
-            const metrics = calculateBioMetrics()
-            
-            return `
-            <div class="screen max-w-xl mx-auto px-2">
-                <h2 class="text-3xl font-semibold mb-8 text-center">Seu Bio-Hub, amiga 💕</h2>
-                
-                <div class="glass rounded-3xl p-8 mb-8">
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="text-xs font-medium block mb-1">Peso atual (kg)</label>
-                            <input id="bio-peso" type="number" step="0.1" value="${bioData.pesoAtual}" 
-                                   class="glass w-full px-4 py-3 rounded-2xl text-3xl font-semibold focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium block mb-1">Idade</label>
-                            <input id="bio-idade" type="number" value="${bioData.idade}" 
-                                   class="glass w-full px-4 py-3 rounded-2xl text-3xl font-semibold focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium block mb-1">Altura (cm)</label>
-                            <input id="bio-altura" type="number" value="${bioData.altura}" 
-                                   class="glass w-full px-4 py-3 rounded-2xl text-3xl font-semibold focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium block mb-1">Objetivo</label>
-                            <select id="bio-objetivo" class="glass w-full px-4 py-3 rounded-2xl text-xl font-semibold focus:outline-none">
-                                <option value="Emagrecer" ${bioData.objetivo === 'Emagrecer' ? 'selected' : ''}>Emagrecer com leveza</option>
-                                <option value="Manter o peso" ${bioData.objetivo === 'Manter o peso' ? 'selected' : ''}>Manter meu equilíbrio</option>
-                                <option value="Ganhar peso ou massa" ${bioData.objetivo === 'Ganhar peso ou massa' ? 'selected' : ''}>Ganhar força e massa</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <button onclick="saveBioData()" 
-                            class="mt-8 w-full py-4 text-white font-semibold rounded-3xl bg-gradient-to-r from-rose-400 to-lavender-400">Atualizar meu plano</button>
-                </div>
-                
-                <!-- Resultados -->
-                <div class="space-y-6">
-                    <div class="glass rounded-3xl p-6 flex justify-between items-center">
-                        <div>
-                            <div class="text-sm font-medium">Água recomendada</div>
-                            <div class="text-4xl font-semibold">${metrics.agua}<span class="text-base font-normal ml-1">ml</span></div>
-                        </div>
-                        <div class="text-5xl">💧</div>
-                    </div>
-                    
-                    <div class="glass rounded-3xl p-6 flex justify-between items-center">
-                        <div>
-                            <div class="text-sm font-medium">Proteína diária</div>
-                            <div class="text-4xl font-semibold">${metrics.proteina}<span class="text-base font-normal ml-1">g</span></div>
-                        </div>
-                        <div class="text-5xl">🥚</div>
-                    </div>
-                    
-                    <div class="glass rounded-3xl p-6 flex justify-between items-center">
-                        <div>
-                            <div class="text-sm font-medium">Calorias diárias</div>
-                            <div class="text-4xl font-semibold">${metrics.calorias}</div>
-                        </div>
-                        <div class="text-5xl">🍎</div>
-                    </div>
-                    
-                    <!-- IMC -->
-                    <div class="glass rounded-3xl p-6">
-                        <div class="flex justify-between mb-3">
-                            <div class="text-sm font-medium">Seu IMC</div>
-                            <div class="text-4xl font-semibold">${metrics.imc}</div>
-                        </div>
-                        <div class="h-3 bg-gradient-to-r from-blue-400 via-emerald-400 via-yellow-400 to-red-400 rounded-3xl relative">
-                            <div class="absolute -top-1 w-5 h-5 bg-white border-4 border-rose-400 rounded-full shadow-xl" 
-                                 style="left: ${Math.min(95, Math.max(5, (metrics.imc - 15) * 5.5))}%;"></div>
-                        </div>
-                        <div class="flex justify-between text-[10px] mt-1 text-slate-400">
-                            <div>15</div><div>18.5</div><div>25</div><div>30</div><div>40</div>
-                        </div>
-                        <p class="mt-4 text-center font-medium text-sm ${metrics.imcColor.replace('bg-', 'text-')}">${metrics.imcStatus}</p>
-                    </div>
-                    
-                    <div class="glass rounded-3xl p-8 text-center">
-                        <p class="italic text-xl">"Você já é linda exatamente como é. Cada passo que dá é uma conquista enorme. Estou tão orgulhosa de você!"</p>
-                        <p class="text-rose-400 mt-6 text-sm">— Sua amiga do Diário 🌸</p>
-                    </div>
-                </div>
-            </div>`
-        }
-        
-        function renderRegistrar() {
-            const today = new Date().toISOString().split('T')[0]
-            const existing = logs[today] || {}
-            
-            return `
-            <div class="screen max-w-xl mx-auto">
-                <h2 class="text-3xl font-semibold mb-8 px-2">Registrar hoje, amiga 💖</h2>
-                
-                <div class="glass rounded-3xl p-8 space-y-8">
-                    <div>
-                        <label class="block text-xs font-medium mb-2">Peso hoje (kg)</label>
-                        <input id="reg-peso" type="number" step="0.1" value="${existing.peso || ''}" 
-                               class="glass w-full px-6 py-5 text-3xl rounded-3xl focus:outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium mb-2">Horário que começou o jejum</label>
-                        <input id="reg-jejum" type="text" maxlength="5" placeholder="08:30" value="${existing.jejumStart || ''}"
-                               oninput="formatTime(this)" 
-                               class="glass w-full px-6 py-5 text-3xl rounded-3xl focus:outline-none text-center font-mono">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium mb-2">O que você comeu hoje?</label>
-                        <textarea id="reg-comida" rows="3" 
-                                  class="glass w-full px-6 py-5 rounded-3xl focus:outline-none resize-none">${existing.comida || ''}</textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium mb-2">Quantos copos de água tomou?</label>
-                        <div class="flex gap-3">
-                            ${[1,2,3,4,5,6,7,8,9,10].map(n => `
-                            <button onclick="setWater(this)" data-value="${n}" 
-                                    class="flex-1 py-4 rounded-3xl glass text-2xl ${existing.agua == n ? 'bg-rose-400 text-white' : ''}">${n}</button>`).join('')}
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium mb-2">Fase do ciclo menstrual</label>
-                        <select id="reg-ciclo" class="glass w-full px-6 py-5 rounded-3xl text-xl">
-                            <option value="Folicular 🌱" ${existing.ciclo === 'Folicular 🌱' ? 'selected' : ''}>Folicular 🌱</option>
-                            <option value="Ovulação 🌸" ${existing.ciclo === 'Ovulação 🌸' ? 'selected' : ''}>Ovulação 🌸</option>
-                            <option value="Lútea 🍂" ${existing.ciclo === 'Lútea 🍂' ? 'selected' : ''}>Lútea 🍂</option>
-                            <option value="Menstruação 🩸" ${existing.ciclo === 'Menstruação 🩸' ? 'selected' : ''}>Menstruação 🩸</option>
-                        </select>
-                    </div>
-                    
-                    <button onclick="saveRegistro()" 
-                            class="w-full py-6 bg-gradient-to-r from-rose-400 to-lavender-400 text-white font-semibold text-xl rounded-3xl active:scale-95 transition-all">
-                        Salvar registro com carinho 💕
-                    </button>
-                </div>
-            </div>`
-        }
-        
-        function renderSOS() {
-            return `
-            <div class="screen flex flex-col items-center justify-center h-full text-center px-6">
-                <h2 class="text-4xl font-semibold mb-3">SOS Calma, amiga 🧘‍♀️</h2>
-                <p class="max-w-xs text-slate-400 mb-12">Respire comigo. Você está segura, leve e amada.</p>
-                
-                <div onclick="startBreathing()" id="breathing-container"
-                     class="w-64 h-64 rounded-full glass flex items-center justify-center cursor-pointer relative">
-                    <div id="breathing-circle" class="w-56 h-56 rounded-full bg-gradient-to-br from-rose-200 to-lavender-200 dark:from-rose-400/30 dark:to-lavender-400/30 flex items-center justify-center text-6xl shadow-inner">
-                        🌬️
-                    </div>
-                    <div id="breathing-text" class="absolute text-2xl font-medium text-rose-400">Toque para respirar</div>
-                </div>
-                
-                <p class="mt-12 text-sm max-w-xs">Inspire profundamente pelo nariz por 4 segundos… segure… expire pela boca por 6 segundos.</p>
-                <button onclick="stopBreathing()" 
-                        class="mt-8 text-xs px-6 py-3 rounded-3xl border border-slate-300 dark:border-slate-600">Parar respiração</button>
-            </div>`
-        }
-        
-        function renderMais() {
-            return `
-            <div class="screen max-w-xl mx-auto px-4 space-y-6">
-                <h2 class="text-3xl font-semibold mb-6">Mais coisinhas boas 🌺</h2>
-                
-                <div onclick="installPWA()" class="glass rounded-3xl p-6 flex items-center gap-6 cursor-pointer active:scale-95">
-                    <div class="text-5xl">📱</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-xl">Instalar no celular</p>
-                        <p class="text-slate-400 text-sm">Tenha o Diário de Evolução como um app nativo. Rápido, bonito e sempre com você.</p>
-                    </div>
-                </div>
-                
-                <div onclick="showInstallInstructions()" class="glass rounded-3xl p-6 flex items-center gap-6 cursor-pointer active:scale-95">
-                    <div class="text-5xl">📖</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-xl">Como instalar (passo a passo)</p>
-                        <p class="text-slate-400 text-sm">iPhone e Android – guia completo com imagens</p>
-                    </div>
-                </div>
-                
-                <div onclick="copyInstagramSummary()" class="glass rounded-3xl p-6 flex items-center gap-6 cursor-pointer active:scale-95">
-                    <div class="text-5xl">📸</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-xl">Copiar resumo para Instagram</p>
-                        <p class="text-slate-400 text-sm">Texto pronto com emojis para Stories ou feed</p>
-                    </div>
-                </div>
-                
-                <div onclick="showPrivacy()" class="glass rounded-3xl p-6 flex items-center gap-6 cursor-pointer active:scale-95">
-                    <div class="text-5xl">🔒</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-xl">Privacidade</p>
-                        <p class="text-slate-400 text-sm">Seus dados nunca saem do seu celular. 100% seu.</p>
-                    </div>
-                </div>
-                
-                <div onclick="showAbout()" class="glass rounded-3xl p-6 flex items-center gap-6 cursor-pointer active:scale-95">
-                    <div class="text-5xl">💖</div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-xl">Sobre o Diário de Evolução</p>
-                        <p class="text-slate-400 text-sm">Feito com muito carinho para mulheres que merecem brilhar.</p>
-                    </div>
-                </div>
-                
-                <div class="text-center text-xs text-slate-400 mt-12">
-                    Versão 1.0 • Feito com amor para você
-                </div>
-            </div>`
-        }
-        
-        // ==================== NAVEGAÇÃO ====================
-        let currentTab = 0
-        const screens = [renderHome, renderBioHub, renderRegistrar, renderSOS, renderMais]
-        
-        function navigateTo(tab) {
-            currentTab = tab
-            // Remove active de todos
-            document.querySelectorAll('.bottom-nav button').forEach(btn => btn.classList.remove('tab-active'))
-            // Ativa o atual
-            document.getElementById('nav-' + tab).classList.add('tab-active')
-            
-            const contentEl = document.getElementById('content')
-            contentEl.innerHTML = screens[tab]()
-            
-            // Se for home, inicia timer de jejum
-            if (tab === 0) startFastingTimer()
-        }
-        
-        // ==================== TIMER DE JEJUM ====================
-        let fastingInterval = null
-        
-        function startFastingTimer() {
-            if (fastingInterval) clearInterval(fastingInterval)
-            
-            fastingInterval = setInterval(() => {
-                if (currentTab !== 0) return
-                
-                const hours = getFastingHours()
-                const phase = getCurrentPhase(hours)
-                const minutes = Math.floor((Date.now() - new Date(currentFastingStart).getTime()) / 60000) % 60
-                
-                const timerEl = document.getElementById('fasting-timer')
-                if (timerEl) timerEl.textContent = `${hours}:${minutes < 10 ? '0' : ''}${minutes}`
-                
-                // Atualiza fase e círculo
-                const progressCircle = document.getElementById('progress-circle')
-                if (progressCircle) {
-                    const circumference = 534
-                    const offset = circumference - (circumference * phase.progress / 100)
-                    progressCircle.setAttribute('stroke-dashoffset', offset)
+
+        // 2. Tela Home
+        function HomeScreen({ user, fasting, setFasting, logs }) {
+            const [now, setNow] = useState(Date.now());
+
+            useEffect(() => {
+                if (fasting.isFasting) {
+                    const interval = setInterval(() => setNow(Date.now()), 1000);
+                    return () => clearInterval(interval);
                 }
-                
-                const phaseEl = document.getElementById('fasting-phase')
-                if (phaseEl) phaseEl.innerHTML = phase.name
-            }, 60000) // atualiza a cada minuto
-        }
-        
-        // ==================== FUNÇÕES DE AÇÃO ====================
-        function startJourney() {
-            userData.name = document.getElementById('setup-name').value.trim() || 'Amiga'
-            userData.pesoInicial = parseFloat(document.getElementById('setup-peso-inicial').value) || 65
-            userData.pesoDesejado = parseFloat(document.getElementById('setup-peso-desejado').value) || 55
-            
-            bioData.pesoAtual = userData.pesoInicial
-            bioData.idade = 30 // valor padrão amigável
-            bioData.altura = 165
-            bioData.objetivo = 'Emagrecer'
-            
-            saveData()
-            
-            document.getElementById('setup-screen').classList.add('hidden')
-            document.getElementById('main-app').classList.remove('hidden')
-            navigateTo(0)
-            showToast('Bem-vinda à sua jornada, ' + userData.name + '! 💖')
-        }
-        
-        function saveBioData() {
-            bioData.pesoAtual = parseFloat(document.getElementById('bio-peso').value) || bioData.pesoAtual
-            bioData.idade = parseFloat(document.getElementById('bio-idade').value) || bioData.idade
-            bioData.altura = parseFloat(document.getElementById('bio-altura').value) || bioData.altura
-            bioData.objetivo = document.getElementById('bio-objetivo').value
-            saveData()
-            navigateTo(1)
-            showToast('Plano atualizado com carinho ✨')
-        }
-        
-        function saveRegistro() {
-            const today = new Date().toISOString().split('T')[0]
-            
-            logs[today] = {
-                peso: parseFloat(document.getElementById('reg-peso').value),
-                jejumStart: document.getElementById('reg-jejum').value,
-                comida: document.getElementById('reg-comida').value,
-                agua: parseInt(document.querySelector('#reg-comida').parentElement.parentElement.querySelector('button.bg-rose-400') ? document.querySelector('#reg-comida').parentElement.parentElement.querySelector('button.bg-rose-400').dataset.value : 6),
-                ciclo: document.getElementById('reg-ciclo').value
-            }
-            
-            // Atualiza jejum atual
-            if (logs[today].jejumStart) {
-                const [h, m] = logs[today].jejumStart.split(':')
-                const startDate = new Date()
-                startDate.setHours(parseInt(h), parseInt(m), 0, 0)
-                currentFastingStart = startDate.toISOString()
-            }
-            
-            saveData()
-            showToast('Registro salvo com muito amor 💕')
-            navigateTo(0) // volta para home
-        }
-        
-        function setWater(btn) {
-            // Remove todos os ativos
-            document.querySelectorAll('#reg-comida ~ div button').forEach(b => b.classList.remove('bg-rose-400', 'text-white'))
-            btn.classList.add('bg-rose-400', 'text-white')
-        }
-        
-        function formatTime(input) {
-            let value = input.value.replace(/\D/g, '')
-            if (value.length >= 3) {
-                value = value.slice(0, 2) + ':' + value.slice(2, 4)
-            }
-            // Valida horas
-            if (value.length === 5) {
-                const [h, m] = value.split(':').map(Number)
-                if (h > 23 || m > 59) {
-                    input.value = value.slice(0, 4)
-                    return
-                }
-            }
-            input.value = value
-        }
-        
-        // Respiração SOS
-        let breathingInterval = null
-        
-        function startBreathing() {
-            const circle = document.getElementById('breathing-circle')
-            const text = document.getElementById('breathing-text')
-            
-            if (breathingInterval) return
-            
-            let phase = 0
-            breathingInterval = setInterval(() => {
-                phase++
-                if (phase % 2 === 1) {
-                    circle.style.animation = 'breatheIn 4s ease-in-out forwards'
-                    text.textContent = 'Inspire… 🌬️'
+            }, [fasting.isFasting]);
+
+            const toggleFasting = () => {
+                if (fasting.isFasting) {
+                    // Finaliza jejum
+                    setFasting({ isFasting: false, startTime: null });
                 } else {
-                    circle.style.animation = 'breatheOut 6s ease-in-out forwards'
-                    text.textContent = 'Expire devagar… 🍃'
+                    // Inicia jejum
+                    setFasting({ isFasting: true, startTime: Date.now() });
                 }
-            }, 5000)
+            };
+
+            // Cálculos do Jejum
+            const elapsedHours = fasting.isFasting ? (now - fasting.startTime) / (1000 * 60 * 60) : 0;
+            const targetHours = 16; // Padrão 16h para UI visual
+            const progress = Math.min((elapsedHours / targetHours) * 100, 100);
             
-            // Primeira animação imediata
-            circle.style.animation = 'breatheIn 4s ease-in-out forwards'
-            text.textContent = 'Inspire… 🌬️'
-        }
-        
-        function stopBreathing() {
-            if (breathingInterval) {
-                clearInterval(breathingInterval)
-                breathingInterval = null
+            // Fases Metabólicas
+            let phase = "Alimentação";
+            let phaseColor = "text-emerald-500";
+            if(fasting.isFasting) {
+                if (elapsedHours < 4) { phase = "Açúcar no sangue caindo"; phaseColor = "text-blue-500"; }
+                else if (elapsedHours < 12) { phase = "Digestão & Estabilização"; phaseColor = "text-indigo-500"; }
+                else if (elapsedHours < 16) { phase = "🔥 Queima de Gordura"; phaseColor = "text-orange-500"; }
+                else if (elapsedHours < 24) { phase = "⚡ Cetose Leve"; phaseColor = "text-purple-500"; }
+                else { phase = "✨ Autofagia (Renovação)"; phaseColor = "text-rose-500"; }
             }
-            const circle = document.getElementById('breathing-circle')
-            const text = document.getElementById('breathing-text')
-            circle.style.animation = ''
-            text.textContent = 'Toque para respirar'
-        }
-        
-        function toggleDarkMode() {
-            darkMode = !darkMode
-            if (darkMode) {
-                document.documentElement.classList.add('dark')
-                document.getElementById('dark-icon').innerHTML = '🌙'
-            } else {
-                document.documentElement.classList.remove('dark')
-                document.getElementById('dark-icon').innerHTML = '☀️'
-            }
-            saveData()
-        }
-        
-        function showToast(message) {
-            const toast = document.getElementById('toast')
-            toast.textContent = message
-            toast.classList.remove('hidden')
-            toast.style.display = 'flex'
-            setTimeout(() => {
-                toast.classList.add('hidden')
-            }, 2800)
-        }
-        
-        // PWA Install
-        let deferredPrompt = null
-        
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt()
-                deferredPrompt.userChoice.then(() => {
-                    deferredPrompt = null
-                })
-            } else {
-                showInstallInstructions()
-            }
-        }
-        
-        function showInstallInstructions() {
-            const html = `
-            <div class="fixed inset-0 bg-black/70 flex items-end z-[9999]">
-                <div class="glass w-full rounded-t-3xl p-8 max-h-[85vh] overflow-auto">
-                    <h3 class="text-2xl font-semibold mb-6">Como instalar o Diário de Evolução</h3>
-                    <div class="space-y-8">
-                        <div class="flex gap-4">
-                            <div class="text-4xl flex-shrink-0">📱</div>
-                            <div>
-                                <p class="font-semibold">No iPhone (Safari)</p>
-                                <p class="text-sm">Toque no botão de compartilhamento → "Adicionar à Tela de Início"</p>
+
+            const formatTime = (ms) => {
+                let totalSeconds = Math.floor(ms / 1000);
+                let hours = Math.floor(totalSeconds / 3600);
+                let minutes = Math.floor((totalSeconds % 3600) / 60);
+                let seconds = totalSeconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            // Renderizar mini-calendário da semana
+            const renderWeekHabits = () => {
+                const days = [];
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                
+                // Pega de Seg a Dom da semana atual
+                const dayOfWeek = today.getDay(); // 0=Dom, 1=Seg...
+                const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - distanceToMonday);
+
+                for(let i=0; i<7; i++) {
+                    const current = new Date(monday);
+                    current.setDate(monday.getDate() + i);
+                    const dateStr = new Date(current.getTime() - (current.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    const isToday = current.getTime() === today.getTime();
+                    const hasLog = !!logs[dateStr];
+                    const isFuture = current.getTime() > today.getTime();
+
+                    const dayNames = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+                    const dayLabel = dayNames[current.getDay()];
+
+                    days.push(
+                        <div key={i} className="flex flex-col items-center gap-2">
+                            <span className="text-xs text-slate-400 font-medium">{dayLabel}</span>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                hasLog ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md' : 
+                                isToday ? 'border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 
+                                'bg-slate-100 dark:bg-slate-800'
+                            }`}>
+                                {hasLog ? <Icons.Check /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>}
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="text-4xl flex-shrink-0">📱</div>
-                            <div>
-                                <p class="font-semibold">No Android (Chrome)</p>
-                                <p class="text-sm">Toque nos três pontinhos → "Instalar app" ou "Adicionar à tela inicial"</p>
+                    );
+                }
+                return days;
+            };
+
+            return (
+                <div className="space-y-6 animate-slide-up">
+                    {/* Card Jejum */}
+                    <div className="glass p-6 rounded-3xl text-center relative overflow-hidden shadow-sm">
+                        <h2 className="font-bold text-lg mb-6">Status do Jejum</h2>
+                        
+                        {/* Timer Circular */}
+                        <div className="relative w-48 h-48 mx-auto mb-6 flex items-center justify-center">
+                            <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100">
+                                <circle className="text-slate-200 dark:text-slate-700 stroke-current" strokeWidth="6" cx="50" cy="50" r="45" fill="transparent"></circle>
+                                <circle 
+                                    className="text-indigo-500 progress-ring__circle stroke-current drop-shadow-md" 
+                                    strokeWidth="6" strokeLinecap="round" cx="50" cy="50" r="45" fill="transparent"
+                                    strokeDasharray="283" 
+                                    strokeDashoffset={283 - (283 * progress) / 100}
+                                ></circle>
+                            </svg>
+                            <div className="z-10 flex flex-col items-center">
+                                {fasting.isFasting ? (
+                                    <>
+                                        <span className="text-3xl font-bold tracking-tighter tabular-nums">
+                                            {formatTime(now - fasting.startTime)}
+                                        </span>
+                                        <span className="text-xs font-medium uppercase tracking-wider text-slate-500 mt-1">Horas</span>
+                                    </>
+                                ) : (
+                                    <span className="text-slate-400 font-medium">Toque para<br/>iniciar</span>
+                                )}
                             </div>
                         </div>
-                        <button onclick="this.closest('.fixed').remove()" 
-                                class="w-full py-5 bg-gradient-to-r from-rose-400 to-lavender-400 text-white rounded-3xl">Entendi, vou instalar agora!</button>
+
+                        {fasting.isFasting && (
+                            <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 py-2 px-4 rounded-xl inline-block">
+                                <span className="text-xs text-slate-500 block mb-1">Fase atual:</span>
+                                <span className={`font-bold text-sm ${phaseColor} animate-pulse`}>{phase}</span>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={toggleFasting}
+                            className={`w-full py-4 rounded-2xl font-bold transition-all transform active:scale-95 shadow-md ${
+                                fasting.isFasting 
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' 
+                                : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-lg'
+                            }`}
+                        >
+                            {fasting.isFasting ? 'Encerrar Jejum' : 'Iniciar Jejum Agora'}
+                        </button>
+                    </div>
+
+                    {/* Card Hábitos */}
+                    <div className="glass p-6 rounded-3xl shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-bold">Hábitos da Semana</h2>
+                            <span className="text-xs text-emerald-500 font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-md">Consistência</span>
+                        </div>
+                        <div className="flex justify-between">
+                            {renderWeekHabits()}
+                        </div>
                     </div>
                 </div>
-            </div>`
-            const div = document.createElement('div')
-            div.innerHTML = html
-            document.body.appendChild(div)
+            );
         }
-        
-        function copyInstagramSummary() {
-            const streak = calculateStreak()
-            const today = new Date().toISOString().split('T')[0]
-            const log = logs[today] || {}
+
+        // 3. Tela Bio-Hub
+        function BioHubScreen({ bio, setBio, user }) {
+            const [localBio, setLocalBio] = useState(bio);
+            const [showResults, setShowResults] = useState(false);
+
+            // Cálculos
+            const weight = parseFloat(localBio.weight) || 0;
+            const height = parseFloat(localBio.height) || 0;
+            const age = parseFloat(localBio.age) || 0;
             
-            const text = `🌸 Meu registro de hoje no Diário de Evolução\n\nPeso: ${log.peso || userData.pesoInicial} kg\nÁgua: ${log.agua || 6} copos 💧\nOfensiva: ${streak} dias 🔥\nFase: ${log.ciclo || 'Folicular 🌱'}\n\nEstou caminhando para a minha melhor versão com leveza e amor próprio. E você, amiga? Quem mais está nessa jornada? 💕 #DiarioDeEvolucao`
+            // IMC
+            const imc = (weight && height) ? (weight / Math.pow(height/100, 2)).toFixed(1) : 0;
+            let imcStatus = "Normal";
+            let imcColor = "bg-emerald-500";
+            let markerPos = 50; // Porcentagem na barra
             
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Texto copiado! Cole no Instagram 🌸')
-            })
-        }
-        
-        function showPrivacy() {
-            showToast('Seus dados ficam 100% no seu celular. Nunca saem daqui 💖')
-        }
-        
-        function showAbout() {
-            const html = `<div class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-6">
-                <div class="glass max-w-md w-full rounded-3xl p-8 text-center">
-                    <div class="text-7xl mb-6">🌸</div>
-                    <h2 class="text-3xl font-semibold mb-4">Diário de Evolução</h2>
-                    <p class="text-slate-500 mb-8">Feito com muito carinho para mulheres que desejam emagrecer, criar hábitos suaves e se sentir mais confiantes e leves todos os dias.</p>
-                    <p class="text-xs text-slate-400">Versão completa • Single-file PWA • 100% offline</p>
-                    <button onclick="this.closest('.fixed').remove()" class="mt-8 w-full py-4 rounded-3xl bg-rose-400 text-white">Voltar com carinho</button>
+            if(imc > 0) {
+                if(imc < 18.5) { imcStatus = "Abaixo do peso"; imcColor = "bg-blue-400"; markerPos = 15; }
+                else if(imc < 25) { imcStatus = "Peso Ideal"; imcColor = "bg-emerald-500"; markerPos = 50; }
+                else if(imc < 30) { imcStatus = "Sobrepeso"; imcColor = "bg-yellow-400"; markerPos = 75; }
+                else { imcStatus = "Atenção"; imcColor = "bg-rose-500"; markerPos = 95; }
+            }
+
+            // TDEE (Mifflin-St Jeor) Mulheres
+            const basal = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+            let tdee = basal * 1.2; // Sedentária
+            
+            let calories = Math.round(tdee);
+            if (localBio.objective === 'emagrecer') calories -= 400; // Déficit leve
+            if (localBio.objective === 'ganhar') calories += 300;
+
+            // Água e Proteína
+            const water = Math.round(weight * 35); // ml
+            let proteinFactor = localBio.objective === 'emagrecer' ? 1.8 : (localBio.objective === 'ganhar' ? 2.0 : 1.2);
+            const protein = Math.round(weight * proteinFactor);
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                setBio(localBio);
+                setShowResults(true);
+            };
+
+            return (
+                <div className="space-y-6 animate-slide-up">
+                    <div className="glass p-6 rounded-3xl">
+                        <h2 className="font-bold text-lg mb-4">Seu Perfil Biológico</h2>
+                        <form onSubmit={handleSave} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Peso (kg)</label>
+                                    <input required type="number" step="0.1" value={localBio.weight} onChange={e => setLocalBio({...localBio, weight: e.target.value})} 
+                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Altura (cm)</label>
+                                    <input required type="number" value={localBio.height} onChange={e => setLocalBio({...localBio, height: e.target.value})} 
+                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Idade</label>
+                                    <input required type="number" value={localBio.age} onChange={e => setLocalBio({...localBio, age: e.target.value})} 
+                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1 text-slate-500 pl-1">Objetivo</label>
+                                    <select value={localBio.objective} onChange={e => setLocalBio({...localBio, objective: e.target.value})}
+                                        className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-indigo-400 appearance-none text-sm">
+                                        <option value="emagrecer">Emagrecer</option>
+                                        <option value="manter">Manter peso</option>
+                                        <option value="ganhar">Ganhar massa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" className="w-full py-3 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 font-bold rounded-xl active:scale-95 transition-transform">
+                                Calcular Meu Plano
+                            </button>
+                        </form>
+                    </div>
+
+                    {showResults && age > 0 && height > 0 && (
+                        <div className="space-y-4 animate-fade-in">
+                            <h3 className="font-bold text-lg px-2">Suas Metas Diárias ✨</h3>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                                    <span className="text-2xl mb-1">💧</span>
+                                    <span className="text-sm text-slate-500">Água</span>
+                                    <span className="font-bold text-xl">{water} <span className="text-sm font-normal">ml</span></span>
+                                </div>
+                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                                    <span className="text-2xl mb-1">🥩</span>
+                                    <span className="text-sm text-slate-500">Proteína</span>
+                                    <span className="font-bold text-xl">{protein} <span className="text-sm font-normal">g</span></span>
+                                </div>
+                                <div className="glass p-5 rounded-3xl flex flex-col items-center justify-center text-center col-span-2">
+                                    <span className="text-sm text-slate-500 mb-1">Calorias Recomendadas (Aprox.)</span>
+                                    <span className="font-bold text-3xl text-indigo-500">{calories} <span className="text-base font-normal text-slate-500">kcal/dia</span></span>
+                                    <p className="text-xs text-slate-400 mt-2">Baseado no seu objetivo de forma suave.</p>
+                                </div>
+                            </div>
+
+                            {/* Card IMC Visual */}
+                            <div className="glass p-5 rounded-3xl">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-sm font-medium">Seu IMC: <span className="font-bold">{imc}</span></span>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-md text-white ${imcColor}`}>{imcStatus}</span>
+                                </div>
+                                <div className="relative h-3 rounded-full bg-slate-200 flex overflow-hidden">
+                                    <div className="h-full w-[20%] bg-blue-300"></div>
+                                    <div className="h-full w-[40%] bg-emerald-400"></div>
+                                    <div className="h-full w-[20%] bg-yellow-400"></div>
+                                    <div className="h-full w-[20%] bg-rose-400"></div>
+                                </div>
+                                {/* Marker indicator */}
+                                <div className="relative mt-2 h-4">
+                                    <div className="absolute top-0 w-3 h-3 bg-slate-800 dark:bg-white rounded-full transform -translate-x-1.5 transition-all duration-1000" style={{ left: `${markerPos}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>`
-            const div = document.createElement('div')
-            div.innerHTML = html
-            document.body.appendChild(div)
+            );
         }
-        
-        // ==================== SERVICE WORKER + MANIFEST (PWA completo) ====================
-        function registerPWA() {
-            // Manifest inline via data URL
-            const manifest = {
-                name: "Diário de Evolução",
-                short_name: "Diário",
-                description: "Seu diário carinhoso de saúde, hábitos e evolução feminina",
-                start_url: ".",
-                display: "standalone",
-                background_color: "#fdf4f7",
-                theme_color: "#F472B6",
-                icons: [
-                    {
-                        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='40' fill='%23F472B6'/%3E%3Ctext x='100' y='130' font-size='110' text-anchor='middle' fill='%23fff'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E",
-                        sizes: "192x192",
-                        type: "image/svg+xml"
-                    },
-                    {
-                        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='40' fill='%23F472B6'/%3E%3Ctext x='100' y='130' font-size='110' text-anchor='middle' fill='%23fff'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E",
-                        sizes: "512x512",
-                        type: "image/svg+xml"
-                    }
-                ]
-            }
+
+        // 4. Tela de Registro
+        function RegisterScreen({ logs, setLogs, setActiveTab }) {
+            const today = getTodayDateString();
+            const existingLog = logs[today] || {};
             
-            const stringManifest = JSON.stringify(manifest)
-            const blob = new Blob([stringManifest], { type: 'application/json' })
-            const manifestURL = URL.createObjectURL(blob)
-            const link = document.createElement('link')
-            link.setAttribute('rel', 'manifest')
-            link.setAttribute('href', manifestURL)
-            document.head.appendChild(link)
-            
-            // Service Worker inline
-            if ('serviceWorker' in navigator) {
-                const swScript = `
-                    const CACHE = 'diario-evolucao-v1';
-                    self.addEventListener('install', e => {
-                        e.waitUntil(
-                            caches.open(CACHE).then(cache => cache.addAll([
-                                '/', 
-                                '/index.html'
-                            ]))
-                        );
-                    });
-                    self.addEventListener('fetch', e => {
-                        e.respondWith(
-                            caches.match(e.request).then(response => {
-                                return response || fetch(e.request);
-                            })
-                        );
-                    });
-                `
-                const blobSW = new Blob([swScript], { type: 'text/javascript' })
-                const swURL = URL.createObjectURL(blobSW)
-                
-                navigator.serviceWorker.register(swURL).then(reg => {
-                    console.log('%c✅ Service Worker registrado – PWA pronto para instalação', 'color:#F472B6; font-weight:600')
-                })
-            }
-            
-            // Captura evento de instalação
-            window.addEventListener('beforeinstallprompt', e => {
-                e.preventDefault()
-                deferredPrompt = e
-            })
+            const [form, setForm] = useState({
+                weight: existingLog.weight || '',
+                fastingTime: existingLog.fastingTime || '',
+                food: existingLog.food || '',
+                water: existingLog.water || 0,
+                cycle: existingLog.cycle || 'folicular'
+            });
+
+            const [showSuccess, setShowSuccess] = useState(false);
+
+            // Máscara de tempo HH:MM
+            const handleTimeChange = (e) => {
+                let val = e.target.value.replace(/\D/g, '');
+                if (val.length > 2) {
+                    val = val.substring(0, 2) + ':' + val.substring(2, 4);
+                }
+                setForm({...form, fastingTime: val});
+            };
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                setLogs({ ...logs, [today]: form });
+                setShowSuccess(true);
+                setTimeout(() => {
+                    setShowSuccess(false);
+                    setActiveTab('home');
+                }, 1500);
+            };
+
+            return (
+                <div className="animate-slide-up">
+                    {showSuccess ? (
+                        <div className="glass p-10 rounded-3xl flex flex-col items-center justify-center text-center animate-fade-in h-[60vh]">
+                            <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                                <span className="text-4xl">✨</span>
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">Registro Salvo!</h2>
+                            <p className="text-slate-500">Um dia de cada vez, amiga. Você está indo super bem!</p>
+                        </div>
+                    ) : (
+                        <div className="glass p-6 rounded-3xl">
+                            <h2 className="font-bold text-xl mb-6">O que rolou hoje? 📝</h2>
+                            <form onSubmit={handleSave} className="space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 pl-1">Peso Hoje (kg)</label>
+                                        <input type="number" step="0.1" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} 
+                                            className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400" placeholder="Ex: 68.5" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 pl-1">Tempo de Jejum</label>
+                                        <input type="text" value={form.fastingTime} onChange={handleTimeChange} placeholder="HH:MM" 
+                                            className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 text-center tracking-widest font-mono" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 pl-1">Como você se alimentou?</label>
+                                    <textarea value={form.food} onChange={e => setForm({...form, food: e.target.value})} rows="3"
+                                        className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+                                        placeholder="Comi comida de verdade, evitei açúcar..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 pl-1">Copos de Água (250ml)</label>
+                                    <div className="flex items-center gap-4 bg-white/50 dark:bg-slate-800/50 p-2 rounded-2xl">
+                                        <button type="button" onClick={() => setForm({...form, water: Math.max(0, form.water - 1)})} className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 rounded-xl shadow-sm text-xl font-bold active:scale-95">-</button>
+                                        <div className="flex-1 text-center font-bold text-2xl text-blue-500">
+                                            {form.water} <span className="text-sm font-normal text-slate-400">copos</span>
+                                        </div>
+                                        <button type="button" onClick={() => setForm({...form, water: form.water + 1})} className="w-12 h-12 flex items-center justify-center bg-blue-500 text-white rounded-xl shadow-sm text-xl font-bold active:scale-95">+</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 pl-1">Fase do Ciclo 🌸</label>
+                                    <select value={form.cycle} onChange={e => setForm({...form, cycle: e.target.value})}
+                                        className="w-full p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-none outline-none focus:ring-2 focus:ring-rose-400 appearance-none">
+                                        <option value="folicular">🌱 Folicular (Energia subindo)</option>
+                                        <option value="ovulacao">🌸 Ovulação (Pico de energia)</option>
+                                        <option value="lutea">🍂 Lútea (Mais fome/cansaço)</option>
+                                        <option value="menstruacao">🩸 Menstruação (Descanso)</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" className="w-full py-4 bg-gradient-to-r from-rose-400 to-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all mt-4">
+                                    Salvar Registro de Hoje
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            );
         }
-        
-        // ==================== INICIALIZAÇÃO ====================
-        function initializeApp() {
-            loadData()
-            initTailwind()
-            registerPWA()
-            
-            // Verifica se já tem usuário (setup)
-            if (!userData.name) {
-                document.getElementById('setup-screen').style.display = 'flex'
-            } else {
-                document.getElementById('main-app').classList.remove('hidden')
-                document.getElementById('setup-screen').classList.add('hidden')
-                navigateTo(0)
-            }
-            
-            console.log('%c🌸 Diário de Evolução carregado com sucesso! Tudo 100% funcional, bonito e offline.', 'color:#F472B6; font-size:13px; font-weight:600')
+
+        // 5. Tela SOS Calma
+        function SOSScreen() {
+            const [isActive, setIsActive] = useState(false);
+            const [text, setText] = useState("Toque para Respirar");
+
+            useEffect(() => {
+                let interval;
+                if(isActive) {
+                    setText("Inspire profundo...");
+                    let cycle = 0;
+                    interval = setInterval(() => {
+                        cycle++;
+                        if(cycle % 2 === 1) setText("Segure... Expire devagar...");
+                        else setText("Inspire profundo...");
+                    }, 4000);
+                } else {
+                    setText("Toque para Respirar");
+                }
+                return () => clearInterval(interval);
+            }, [isActive]);
+
+            return (
+                <div className="animate-slide-up flex flex-col items-center justify-center min-h-[70vh]">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold mb-2">SOS Calma 🧘‍♀️</h2>
+                        <p className="text-slate-500">Bateu a ansiedade ou vontade de comer sem fome? Pare por 1 minuto.</p>
+                    </div>
+
+                    <div 
+                        onClick={() => setIsActive(!isActive)}
+                        className="relative w-64 h-64 flex items-center justify-center cursor-pointer"
+                    >
+                        {/* Círculos de respiração */}
+                        <div className={`absolute w-full h-full bg-rose-200/50 dark:bg-rose-500/20 rounded-full transition-all duration-1000 ${isActive ? 'animate-breathe' : ''}`}></div>
+                        <div className={`absolute w-48 h-48 bg-indigo-200/50 dark:bg-indigo-500/20 rounded-full transition-all duration-1000 delay-75 ${isActive ? 'animate-breathe' : ''}`}></div>
+                        
+                        {/* Centro */}
+                        <div className="absolute w-32 h-32 glass rounded-full flex flex-col items-center justify-center text-center shadow-xl z-10 p-4">
+                            <span className="font-bold text-sm leading-tight text-slate-700 dark:text-slate-200">{text}</span>
+                        </div>
+                    </div>
+
+                    {isActive && (
+                        <p className="mt-12 text-center text-sm font-medium text-slate-500 animate-fade-in max-w-xs">
+                            "Nenhum doce vale mais que a paz de estar no controle da sua própria vida."
+                        </p>
+                    )}
+                </div>
+            );
         }
-        
-        // Inicia tudo
-        window.onload = initializeApp
+
+        // 6. Tela Mais
+        function MoreScreen({ darkMode, setDarkMode, logs, user, streak }) {
+            const [copied, setCopied] = useState(false);
+
+            const handleCopy = () => {
+                const text = `🌸 Diário de Evolução da ${user.name}\n🔥 Ofensiva: ${streak} dias de consistência!\n\n"Construindo minha melhor versão, um dia de cada vez." ✨`;
+                navigator.clipboard.writeText(text);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            return (
+                <div className="space-y-4 animate-slide-up">
+                    <h2 className="font-bold text-xl mb-4 pl-2">Configurações</h2>
+                    
+                    {/* Modo Escuro */}
+                    <div className="glass p-5 rounded-2xl flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-indigo-500">
+                                {darkMode ? <Icons.Moon /> : <Icons.Sun />}
+                            </div>
+                            <span className="font-medium">Modo Escuro</span>
+                        </div>
+                        <button 
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`w-14 h-8 rounded-full p-1 transition-colors ${darkMode ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                        >
+                            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </button>
+                    </div>
+
+                    {/* Copiar Resumo */}
+                    <div onClick={handleCopy} className="glass p-5 rounded-2xl flex justify-between items-center cursor-pointer active:scale-95 transition-transform">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-rose-500">
+                                <Icons.Copy />
+                            </div>
+                            <div>
+                                <span className="font-medium block">Resumo para Stories</span>
+                                <span className="text-xs text-slate-500">Copie seu progresso para postar</span>
+                            </div>
+                        </div>
+                        {copied ? <span className="text-xs font-bold text-emerald-500">Copiado!</span> : <Icons.Check />}
+                    </div>
+
+                    {/* Instalação */}
+                    <div className="glass p-5 rounded-2xl mt-6">
+                        <h3 className="font-bold mb-3 flex items-center gap-2">📱 Como instalar este App</h3>
+                        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="bg-white/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <strong className="text-slate-800 dark:text-slate-200 block mb-1">No iPhone (Safari):</strong>
+                                <p>1. Toque no ícone de "Compartilhar" (quadrado com seta para cima) na barra inferior.</p>
+                                <p>2. Role para baixo e escolha <strong>"Adicionar à Tela de Início"</strong>.</p>
+                            </div>
+                            <div className="bg-white/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <strong className="text-slate-800 dark:text-slate-200 block mb-1">No Android (Chrome):</strong>
+                                <p>1. Toque nos 3 pontinhos no canto superior direito.</p>
+                                <p>2. Escolha <strong>"Adicionar à tela inicial"</strong> ou "Instalar aplicativo".</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p className="text-center text-xs text-slate-400 mt-8 pb-4">Feito com carinho ❤️ para você.</p>
+                </div>
+            );
+        }
+
+        // Componente Menor: Botão da Tab
+        function TabButton({ icon, label, active, onClick }) {
+            return (
+                <button 
+                    onClick={onClick}
+                    className={`flex flex-col items-center justify-center w-16 h-12 transition-colors ${
+                        active ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                    }`}
+                >
+                    <div className={`${active ? 'transform -translate-y-1 scale-110' : ''} transition-all duration-300`}>
+                        {icon}
+                    </div>
+                    <span className="text-[10px] font-medium mt-1">{label}</span>
+                </button>
+            );
+        }
+
+        // Renderiza o App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
