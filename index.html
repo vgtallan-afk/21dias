@@ -113,7 +113,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
-        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid } = window.Recharts;
+        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid, ReferenceLine } = window.Recharts;
 
         // --- SVGs Inline (Zero dependências externas, robusto para offline) ---
         const Icon = {
@@ -327,6 +327,20 @@
                 }
             };
 
+            // Calcular streak de dias consecutivos
+            const streak = useMemo(() => {
+                let count = 0;
+                const today = new Date();
+                for (let i = 0; i < 21; i++) {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    const ds = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    if (logs[ds] && (logs[ds].weight || logs[ds].water > 0)) count++;
+                    else if (i > 0) break;
+                }
+                return count;
+            }, [logs]);
+
             const handleEmailVerified = (email) => {
                 localStorage.setItem('depro_email', email);
                 setEmailVerified(true);
@@ -345,15 +359,30 @@
                             <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'bg-clip-text text-transparent bg-gradient-to-r from-brand-rose to-brand-lavender'}`}>
                                 Oi, {user.name.split(' ')[0]}
                             </h1>
+                            {(() => {
+                                const start = new Date(user.startDate);
+                                const now = new Date();
+                                const diffDays = Math.ceil(Math.abs(now - start) / (1000*60*60*24)) + 1;
+                                const day = Math.min(diffDays, 21);
+                                const msgs = [
+                                    `Dia ${day} iniciado! Seu corpo está pronto pra queimar 🔥`,
+                                    `Dia ${day} — cada hora de jejum conta! 💪`,
+                                    `Dia ${day} — você está mais perto do que ontem! ✨`,
+                                    `Incrível, já no dia ${day}! Consistência é tudo 🌟`,
+                                    `Dia ${day} — o processo está funcionando, confie! 🌸`,
+                                ];
+                                const msg = msgs[day % msgs.length];
+                                return <p className={`text-xs mt-0.5 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{msg}</p>;
+                            })()}
                         </div>
-                        <button onClick={() => setDarkMode(!darkMode)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
+                        <button data-tutorial="darkmode-btn" onClick={() => setDarkMode(!darkMode)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
                             {darkMode ? '☀️' : '🌙'}
                         </button>
                     </header>
 
                     {/* Roteamento de Abas */}
                     <main className={`px-6 pb-28 ${darkMode ? 'bg-slate-900' : ''}`}>
-                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} darkMode={darkMode} />}
+                        {activeTab === 'diary' && <DiaryTab user={user} logs={logs} setLogs={setLogs} darkMode={darkMode} streak={streak} />}
                         {activeTab === 'timer' && <TimerTab user={user} fasting={fasting} setFasting={setFasting} notify={notify} darkMode={darkMode} />}
                         {activeTab === 'dash' && <DashboardTab user={user} logs={logs} darkMode={darkMode} />}
                         {activeTab === 'library' && <LibraryTab darkMode={darkMode} />}
@@ -362,10 +391,10 @@
                     {/* Navegação Inferior (App-like) */}
                     <nav className={`fixed bottom-0 left-0 right-0 w-full pb-safe pt-2 px-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] ${darkMode ? 'bg-slate-800 border-t border-slate-700' : 'tab-bar-glass'}`}>
                         <div className="max-w-md mx-auto flex justify-around items-center h-16">
-                            <TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} darkMode={darkMode} />
-                            <TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} darkMode={darkMode} />
-                            <TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} darkMode={darkMode} />
-                            <TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} darkMode={darkMode} />
+                        <div data-tutorial="tab-diary"><TabBtn icon={<Icon.Edit/>} label="Diário" active={activeTab==='diary'} onClick={()=>setActiveTab('diary')} darkMode={darkMode} /></div>
+                            <div data-tutorial="tab-timer"><TabBtn icon={<Icon.Clock/>} label="Jejum" active={activeTab==='timer'} onClick={()=>setActiveTab('timer')} darkMode={darkMode} /></div>
+                            <div data-tutorial="tab-dash"><TabBtn icon={<Icon.Activity/>} label="Evolução" active={activeTab==='dash'} onClick={()=>setActiveTab('dash')} darkMode={darkMode} /></div>
+                            <div data-tutorial="tab-library"><TabBtn icon={<Icon.Book/>} label="Biblioteca" active={activeTab==='library'} onClick={()=>setActiveTab('library')} darkMode={darkMode} /></div>
                         </div>
                     </nav>
 
@@ -665,7 +694,7 @@
         }
 
         // 2. TELA DIÁRIO (O Planner de 21 Dias Oficial)
-        function DiaryTab({ user, logs, setLogs, darkMode }) {
+        function DiaryTab({ user, logs, setLogs, darkMode, streak }) {
             const today = getTodayStr();
             const log = logs[today] || { 
                 weight: '', 
@@ -700,9 +729,16 @@
                 <div className="animate-slide-up space-y-6">
                     <div className="flex justify-between items-center px-1">
                         <h2 className="text-xl font-bold">Resumo Diário</h2>
-                        <span className="bg-brand-rose text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                            Dia {journeyDay} / 21
-                        </span>
+                        <div className="flex items-center gap-2">
+                            {streak > 0 && (
+                                <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${streak >= 7 ? 'bg-amber-100 text-amber-600' : 'bg-orange-50 text-orange-500'}`}>
+                                    🔥 {streak} {streak === 1 ? 'dia' : 'dias'}
+                                </span>
+                            )}
+                            <span className="bg-brand-rose text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                Dia {journeyDay} / 21
+                            </span>
+                        </div>
                     </div>
 
                     {/* Bloco 1: Peso e Água */}
@@ -854,6 +890,9 @@
         // 3. TELA TIMER (Jejum Intermitente Ativo)
         function TimerTab({ user, fasting, setFasting, notify, darkMode }) {
             const [now, setNow] = useState(Date.now());
+            const [showCelebration, setShowCelebration] = useState(false);
+            const [celebrationDismissed, setCelebrationDismissed] = useState(false);
+            const milestonesNotified = useRef(new Set());
 
             useEffect(() => {
                 let interval;
@@ -867,6 +906,39 @@
             const elapsedHoursNum = elapsedMs / (1000 * 60 * 60);
             const targetHours = user.fastingHours;
             const progress = Math.min((elapsedHoursNum / targetHours) * 100, 100);
+
+            // Notificações de marcos
+            useEffect(() => {
+                if (!fasting.isActive) return;
+                const milestones = [
+                    { h: 4, msg: '🔥 Queima de gordura iniciada! Você está no caminho certo.' },
+                    { h: 8, msg: '🧠 Transição para cetose! Seu corpo está mudando de combustível.' },
+                    { h: 12, msg: '✨ Cetose completa! Autofagia e queima máxima ativadas.' },
+                    { h: 16, msg: '🌟 Jejum profundo! Rejuvenescimento celular no pico!' },
+                ];
+                milestones.forEach(({ h, msg }) => {
+                    if (elapsedHoursNum >= h && !milestonesNotified.current.has(h)) {
+                        milestonesNotified.current.add(h);
+                        notify(`Marco de ${h}h atingido!`, msg);
+                    }
+                });
+            }, [elapsedHoursNum, fasting.isActive]);
+
+            // Celebração ao completar meta
+            useEffect(() => {
+                if (progress >= 100 && fasting.isActive && !celebrationDismissed) {
+                    setShowCelebration(true);
+                }
+            }, [progress]);
+
+            // Reset dismissed quando iniciar novo jejum
+            useEffect(() => {
+                if (fasting.isActive) {
+                    setCelebrationDismissed(false);
+                    setShowCelebration(false);
+                    milestonesNotified.current = new Set();
+                }
+            }, [fasting.startTime]);
 
             const formatTime = (ms) => {
                 let s = Math.floor((ms / 1000) % 60);
@@ -889,6 +961,21 @@
 
             return (
                 <div className={`animate-slide-up space-y-6 ${darkMode ? 'text-white' : ''}`}>
+
+                    {/* 🎉 Celebração ao completar meta */}
+                    {showCelebration && (
+                        <div className="fixed inset-0 z-[998] flex items-end justify-center pb-12 px-6 pointer-events-none">
+                            <div className="pointer-events-auto bg-white rounded-3xl shadow-2xl p-7 w-full max-w-sm text-center animate-slide-up border border-emerald-100">
+                                <div className="text-6xl mb-3">🎉</div>
+                                <h3 className="text-2xl font-extrabold text-slate-900 mb-1">Meta Atingida!</h3>
+                                <p className="text-slate-500 text-sm mb-5">Você completou {targetHours}h de jejum. Seu corpo está em plena queima de gordura. Incrível!</p>
+                                <button onClick={() => { setShowCelebration(false); setCelebrationDismissed(true); }}
+                                    className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-white rounded-2xl font-bold shadow-lg">
+                                    Arrasou! 💪
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <div className={`${darkMode ? 'bg-slate-800 border border-slate-700' : 'glass-card'} p-6 rounded-3xl text-center relative overflow-hidden mt-2`}>
                         <div className="absolute top-0 right-0 p-4 opacity-10"><Icon.Clock /></div>
                         <h2 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} mb-1`}>Seu Protocolo</h2>
@@ -1011,11 +1098,35 @@
                     const log = logs[dateStr];
                     
                     if (log && log.weight) {
-                        data.push({ day: `Dia ${i+1}`, peso: parseFloat(log.weight) });
+                        data.push({ day: `D${i+1}`, peso: parseFloat(log.weight), meta: parseFloat(user.weight) - 0.1 * i });
                     }
                 }
-                return data.length > 0 ? data : [{ day: 'Dia 1', peso: parseFloat(user.weight) }];
+                return data.length > 0 ? data : [{ day: 'D1', peso: parseFloat(user.weight), meta: parseFloat(user.weight) }];
             }, [logs, user]);
+
+            // Resumo semanal
+            const weeklySummary = useMemo(() => {
+                const today = new Date();
+                let fastDays = 0, totalWater = 0, weightStart = null, weightEnd = null, daysCount = 0;
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    const ds = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    const log = logs[ds];
+                    if (log) {
+                        daysCount++;
+                        if (log.habits && log.habits['jejum']) fastDays++;
+                        totalWater += (log.water || 0);
+                        if (log.weight) {
+                            if (weightStart === null) weightStart = parseFloat(log.weight);
+                            weightEnd = parseFloat(log.weight);
+                        }
+                    }
+                }
+                const weightDiff = (weightStart && weightEnd) ? (weightEnd - weightStart).toFixed(1) : null;
+                const avgWater = daysCount ? Math.round(totalWater / daysCount) : 0;
+                return { fastDays, avgWater, weightDiff, daysCount };
+            }, [logs]);
 
             const stats = useMemo(() => {
                 const daysLogged = Object.keys(logs).length;
@@ -1054,10 +1165,36 @@
                                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
                                 <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
                                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
-                                <Area type="monotone" dataKey="peso" stroke="#F472B6" strokeWidth={3} fillOpacity={1} fill="url(#colorPeso)" />
+                                <Area type="monotone" dataKey="peso" stroke="#F472B6" strokeWidth={3} fillOpacity={1} fill="url(#colorPeso)" name="Peso" />
+                                <Line type="monotone" dataKey="meta" stroke="#818CF8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} name="Tendência" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
+
+                    {/* Resumo Semanal */}
+                    {weeklySummary.daysCount > 0 && (
+                        <div className={`rounded-3xl p-5 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'glass-card'}`}>
+                            <h3 className={`font-bold text-sm mb-4 flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                📅 Resumo dos Últimos 7 Dias
+                            </h3>
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                                <div className={`rounded-2xl p-3 ${darkMode ? 'bg-slate-700' : 'bg-white/70'}`}>
+                                    <p className="text-xl font-extrabold text-brand-rose">{weeklySummary.fastDays}</p>
+                                    <p className={`text-[10px] font-semibold mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Dias de Jejum</p>
+                                </div>
+                                <div className={`rounded-2xl p-3 ${darkMode ? 'bg-slate-700' : 'bg-white/70'}`}>
+                                    <p className="text-xl font-extrabold text-blue-500">{(weeklySummary.avgWater/1000).toFixed(1)}L</p>
+                                    <p className={`text-[10px] font-semibold mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Média de Água</p>
+                                </div>
+                                <div className={`rounded-2xl p-3 ${darkMode ? 'bg-slate-700' : 'bg-white/70'}`}>
+                                    <p className={`text-xl font-extrabold ${weeklySummary.weightDiff !== null && parseFloat(weeklySummary.weightDiff) < 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                        {weeklySummary.weightDiff !== null ? `${weeklySummary.weightDiff > 0 ? '+' : ''}${weeklySummary.weightDiff}kg` : '--'}
+                                    </p>
+                                    <p className={`text-[10px] font-semibold mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Variação Peso</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* KPIs e Comparação com Metas */}
                     <div className="grid grid-cols-2 gap-4">
@@ -1346,76 +1483,156 @@
             );
         }
 
-        // Tutorial com Balloons/Tooltips
+        // Tutorial Spotlight (destaca o elemento real na tela)
         function TutorialOverlay({ onClose, darkMode }) {
             const [step, setStep] = useState(0);
-            
+            const [spotRect, setSpotRect] = useState(null);
+
+            // Cada step aponta para um seletor real do DOM
             const steps = [
                 {
+                    selector: '[data-tutorial="tab-diary"]',
                     title: '📓 Aba Diário',
-                    description: 'Registre seu peso, água bebida, escalas de energia/humor/sono e qualquer nota importante do dia. Esses dados geram seu progresso!',
-                    icon: '📝'
+                    description: 'Registre aqui seu peso, água, energia e humor. Esses dados constroem seu progresso ao longo dos 21 dias!',
+                    position: 'top', // tooltip acima do spotlight
                 },
                 {
+                    selector: '[data-tutorial="tab-timer"]',
                     title: '⏱️ Aba Jejum',
-                    description: 'Inicie seu jejum aqui! Veja em tempo real qual estágio você está (digestão, cetose, etc.) e o que acontece no seu corpo a cada momento.',
-                    icon: '⏰'
+                    description: 'Inicie e acompanhe seu jejum em tempo real. Veja em qual estágio do corpo você está a cada hora!',
+                    position: 'top',
                 },
                 {
+                    selector: '[data-tutorial="tab-dash"]',
                     title: '📊 Aba Evolução',
-                    description: 'Acompanhe seus gráficos de peso, adesão ao jejum, água consumida e suas métricas diárias. Veja seu progresso acontecendo!',
-                    icon: '📈'
+                    description: 'Seus gráficos de peso, adesão e streak de dias ficam aqui. Veja sua transformação acontecendo!',
+                    position: 'top',
                 },
                 {
+                    selector: '[data-tutorial="tab-library"]',
                     title: '📚 Aba Biblioteca',
-                    description: 'Acesse seus materiais VIP exclusivos. Baixe PDFs uma vez e leia offline sempre que quiser. Fácil e sem internet necessária!',
-                    icon: '📖'
+                    description: 'Seus materiais VIP exclusivos. Baixe os PDFs uma vez e leia offline quando quiser.',
+                    position: 'top',
                 },
                 {
+                    selector: '[data-tutorial="darkmode-btn"]',
                     title: '🌙 Modo Escuro',
-                    description: 'Use o botão no topo para alternar entre tema claro e escuro. Perfeito para usar à noite sem prejudicar seus olhos!',
-                    icon: '🌓'
-                }
+                    description: 'Use este botão para alternar entre tema claro e escuro. Perfeito para usar à noite!',
+                    position: 'bottom',
+                },
             ];
 
+            useEffect(() => {
+                const measureSpot = () => {
+                    const sel = steps[step].selector;
+                    const el = document.querySelector(sel);
+                    if (el) {
+                        const r = el.getBoundingClientRect();
+                        setSpotRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+                    } else {
+                        setSpotRect(null);
+                    }
+                };
+                measureSpot();
+                window.addEventListener('resize', measureSpot);
+                return () => window.removeEventListener('resize', measureSpot);
+            }, [step]);
+
             const handleNext = () => {
-                if (step < steps.length - 1) {
-                    setStep(step + 1);
-                } else {
-                    onClose();
-                }
+                if (step < steps.length - 1) setStep(step + 1);
+                else onClose();
             };
 
+            const pad = 10;
+            const sr = spotRect;
+            const tooltipOnTop = steps[step].position === 'top';
+
             return (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-black/30 p-4">
-                    <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-scale-in ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
-                        <div className="text-center mb-6">
-                            <div className="text-6xl mb-4">{steps[step].icon}</div>
-                            <h2 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-900'}`}>{steps[step].title}</h2>
-                            <p className={`text-[13px] leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                                {steps[step].description}
-                            </p>
-                        </div>
+                <div className="fixed inset-0 z-[999]" style={{ pointerEvents: 'auto' }} onClick={handleNext}>
+                    {/* Escurecimento com buraco recortado */}
+                    {sr && (
+                        <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+                            <defs>
+                                <mask id="spotlight-mask">
+                                    <rect width="100%" height="100%" fill="white" />
+                                    <rect
+                                        x={sr.left - pad} y={sr.top - pad}
+                                        width={sr.width + pad * 2} height={sr.height + pad * 2}
+                                        rx="16" fill="black"
+                                    />
+                                </mask>
+                            </defs>
+                            <rect width="100%" height="100%" fill="rgba(0,0,0,0.72)" mask="url(#spotlight-mask)" />
+                            {/* Borda brilhante ao redor do spotlight */}
+                            <rect
+                                x={sr.left - pad} y={sr.top - pad}
+                                width={sr.width + pad * 2} height={sr.height + pad * 2}
+                                rx="16" fill="none" stroke="#F472B6" strokeWidth="2.5"
+                                style={{ filter: 'drop-shadow(0 0 8px #F472B6)' }}
+                            />
+                        </svg>
+                    )}
 
-                        <div className="flex justify-center gap-2 mb-6">
-                            {steps.map((_, idx) => (
-                                <div key={idx} className={`h-2 rounded-full transition-all ${idx <= step ? 'bg-brand-rose w-6' : 'bg-slate-300 w-2'}`}></div>
-                            ))}
-                        </div>
+                    {/* Tooltip card */}
+                    {sr && (
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            className="absolute z-[1000] w-72 bg-white rounded-2xl shadow-2xl p-5"
+                            style={tooltipOnTop ? {
+                                bottom: window.innerHeight - sr.top + pad + 16,
+                                left: Math.min(Math.max(sr.left + sr.width / 2 - 144, 12), window.innerWidth - 300),
+                            } : {
+                                top: sr.top + sr.height + pad + 16,
+                                left: Math.min(Math.max(sr.left + sr.width / 2 - 144, 12), window.innerWidth - 300),
+                            }}
+                        >
+                            {/* Seta apontando para o elemento */}
+                            <div className="absolute w-4 h-4 bg-white rotate-45"
+                                style={tooltipOnTop ? {
+                                    bottom: -8, left: Math.min(Math.max(sr.left + sr.width / 2 - (Math.min(Math.max(sr.left + sr.width / 2 - 144, 12), window.innerWidth - 300)), 20), 248),
+                                    boxShadow: '2px 2px 4px rgba(0,0,0,0.08)'
+                                } : {
+                                    top: -8, left: Math.min(Math.max(sr.left + sr.width / 2 - (Math.min(Math.max(sr.left + sr.width / 2 - 144, 12), window.innerWidth - 300)), 20), 248),
+                                    boxShadow: '-2px -2px 4px rgba(0,0,0,0.08)'
+                                }}
+                            />
+                            <h3 className="font-bold text-slate-900 text-base mb-1">{steps[step].title}</h3>
+                            <p className="text-slate-500 text-[13px] leading-relaxed mb-4">{steps[step].description}</p>
 
-                        <div className="flex gap-3">
-                            {step > 0 && (
-                                <button onClick={() => setStep(step - 1)} 
-                                    className={`flex-1 py-3 rounded-xl font-bold transition-all ${darkMode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-                                    Anterior
+                            {/* Dots de progresso */}
+                            <div className="flex items-center gap-1.5 mb-4">
+                                {steps.map((_, idx) => (
+                                    <div key={idx} className={`h-1.5 rounded-full transition-all ${idx === step ? 'bg-brand-rose w-5' : idx < step ? 'bg-rose-200 w-2' : 'bg-slate-200 w-2'}`} />
+                                ))}
+                            </div>
+
+                            <div className="flex gap-2">
+                                {step > 0 && (
+                                    <button onClick={() => setStep(step - 1)}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-slate-100 text-slate-600">
+                                        ← Anterior
+                                    </button>
+                                )}
+                                <button onClick={handleNext}
+                                    className="flex-1 py-2.5 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-xl font-bold text-sm shadow-md">
+                                    {step === steps.length - 1 ? 'Começar! 🚀' : 'Próximo →'}
                                 </button>
-                            )}
-                            <button onClick={handleNext} 
-                                className="flex-1 py-3 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
-                                {step === steps.length - 1 ? 'Começar!' : 'Próximo'}
-                            </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Fallback se não achou o elemento */}
+                    {!sr && (
+                        <div className="absolute inset-0 flex items-center justify-center p-6">
+                            <div className="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl">
+                                <p className="font-bold text-slate-800 mb-2">{steps[step].title}</p>
+                                <p className="text-slate-500 text-sm mb-4">{steps[step].description}</p>
+                                <button onClick={handleNext} className="w-full py-3 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-xl font-bold">
+                                    {step === steps.length - 1 ? 'Começar!' : 'Próximo →'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
