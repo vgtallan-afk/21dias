@@ -71,6 +71,29 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         }
 
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.85) !important;
+            border: 1px solid rgba(71, 85, 105, 0.5) !important;
+            color: #f1f5f9;
+        }
+        .dark .glass-card label,
+        .dark .glass-card h3 {
+            color: #cbd5e1 !important;
+        }
+        .dark .glass-card input {
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+        }
+        .dark .glass-card input::placeholder {
+            color: #64748b !important;
+        }
+        .dark .glass-card textarea {
+            background: rgba(15, 23, 42, 0.5) !important;
+            color: #e2e8f0 !important;
+        }
+        .dark body {
+            background-color: #0f172a !important;
+        }
         .tab-bar-glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
@@ -272,6 +295,21 @@
             const [activeTab, setActiveTab] = useState('diary'); // Diário como tela inicial
             const [darkMode, setDarkMode] = useState(false);
             const [showTutorial, setShowTutorial] = useState(false);
+            const [showNotifSettings, setShowNotifSettings] = useState(false);
+            const [notifSettings, setNotifSettings] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('depro_notif');
+                    return saved ? JSON.parse(saved) : {
+                        jejumLembrete: true, jejumHorario: '21:00',
+                        aguaLembrete: true, aguaHorario: '10:00',
+                        pesagemLembrete: true, pesagemHorario: '07:30',
+                        marcosJejum: true,
+                    };
+                } catch(e) {
+                    return { jejumLembrete: true, jejumHorario: '21:00', aguaLembrete: true, aguaHorario: '10:00', pesagemLembrete: true, pesagemHorario: '07:30', marcosJejum: true };
+                }
+            });
+            const notifTimers = useRef([]);
 
             useEffect(() => { window.scrollTo(0, 0); }, [activeTab]);
 
@@ -283,6 +321,8 @@
                 const savedEmail = localStorage.getItem('depro_email');
                 const savedDarkMode = localStorage.getItem('depro_darkMode') === 'true';
                 const hasSeenTutorial = localStorage.getItem('depro_tutorial_seen');
+                const savedNotif = localStorage.getItem('depro_notif');
+                if (savedNotif) { try { setNotifSettings(JSON.parse(savedNotif)); } catch(e){} }
 
                 if (savedEmail) setEmailVerified(true);
                 if (savedUser) {
@@ -320,6 +360,13 @@
                 }
             }, [user, logs, fasting, isLoaded]);
 
+            // Salvar configurações de notificação
+            useEffect(() => {
+                localStorage.setItem('depro_notif', JSON.stringify(notifSettings));
+                scheduleNotifications(notifSettings, fasting);
+            }, [notifSettings]);
+
+
             // Sistema de Notificações
             const notify = (title, body) => {
                 if ("Notification" in window && Notification.permission === "granted") {
@@ -327,7 +374,31 @@
                 }
             };
 
+            // Agendamento de notificações locais (via setTimeout)
+            const scheduleNotifications = (settings, fastingState) => {
+                // Limpar timers antigos
+                notifTimers.current.forEach(t => clearTimeout(t));
+                notifTimers.current = [];
+                if (!("Notification" in window) || Notification.permission !== "granted") return;
+                const scheduleDaily = (horario, title, body) => {
+                    const [h, m] = horario.split(':').map(Number);
+                    const now = new Date();
+                    const target = new Date();
+                    target.setHours(h, m, 0, 0);
+                    if (target <= now) target.setDate(target.getDate() + 1);
+                    const delay = target - now;
+                    const t = setTimeout(() => {
+                        new Notification(title, { body, icon: "https://via.placeholder.com/192x192.png?text=DE" });
+                    }, delay);
+                    notifTimers.current.push(t);
+                };
+                if (settings.jejumLembrete) scheduleDaily(settings.jejumHorario, "⏱️ Hora do Jejum!", "Está na hora de iniciar seu protocolo de jejum. Vamos lá!");
+                if (settings.aguaLembrete) scheduleDaily(settings.aguaHorario, "💧 Beba Água!", "Lembre-se de manter sua hidratação em dia. Sua meta te espera!");
+                if (settings.pesagemLembrete) scheduleDaily(settings.pesagemHorario, "⚖️ Pesagem Matinal", "Hora de registrar seu peso do dia. Abra o Diário agora!");
+            };
+
             // Calcular streak de dias consecutivos
+
             const streak = useMemo(() => {
                 let count = 0;
                 const today = new Date();
@@ -360,24 +431,31 @@
                                 Oi, {user.name.split(' ')[0]}
                             </h1>
                             {(() => {
-                                const start = new Date(user.startDate);
-                                const now = new Date();
-                                const diffDays = Math.ceil(Math.abs(now - start) / (1000*60*60*24)) + 1;
-                                const day = Math.min(diffDays, 21);
+                                const startStr = user.startDate;
+                                const todayStr = getTodayStr();
+                                const startD = new Date(startStr + 'T00:00:00');
+                                const todayD = new Date(todayStr + 'T00:00:00');
+                                const diffDays = Math.round((todayD - startD) / (1000*60*60*24));
+                                const day = Math.min(diffDays + 1, 21);
                                 const msgs = [
-                                    `Dia ${day} iniciado! Seu corpo está pronto pra queimar 🔥`,
-                                    `Dia ${day} — cada hora de jejum conta! 💪`,
+                                    `Dia ${day} — começo de tudo! Você deu o primeiro passo 🌸`,
                                     `Dia ${day} — você está mais perto do que ontem! ✨`,
+                                    `Dia ${day} — cada hora de jejum conta! 💪`,
                                     `Incrível, já no dia ${day}! Consistência é tudo 🌟`,
-                                    `Dia ${day} — o processo está funcionando, confie! 🌸`,
+                                    `Dia ${day} — o processo está funcionando, confie! 🔥`,
                                 ];
-                                const msg = msgs[day % msgs.length];
-                                return <p className={`text-xs mt-0.5 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{msg}</p>;
+                                const msg = msgs[(day - 1) % msgs.length];
+                                return <p className={`text-xs mt-0.5 font-medium ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>{msg}</p>;
                             })()}
                         </div>
-                        <button data-tutorial="darkmode-btn" onClick={() => setDarkMode(!darkMode)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
-                            {darkMode ? '☀️' : '🌙'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setShowNotifSettings(true)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
+                                ⚙️
+                            </button>
+                            <button data-tutorial="darkmode-btn" onClick={() => setDarkMode(!darkMode)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-lg transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'glass-card'}`}>
+                                {darkMode ? '☀️' : '🌙'}
+                            </button>
+                        </div>
                     </header>
 
                     {/* Roteamento de Abas */}
@@ -400,6 +478,16 @@
 
                     {/* Tutorial Overlay */}
                     {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} darkMode={darkMode} />}
+
+                    {/* Notification Settings Panel */}
+                    {showNotifSettings && (
+                        <NotifSettingsPanel
+                            settings={notifSettings}
+                            setSettings={setNotifSettings}
+                            onClose={() => setShowNotifSettings(false)}
+                            darkMode={darkMode}
+                        />
+                    )}
                 </div>
             );
         }
@@ -728,10 +816,10 @@
             return (
                 <div className="animate-slide-up space-y-6">
                     <div className="flex justify-between items-center px-1">
-                        <h2 className="text-xl font-bold">Resumo Diário</h2>
+                        <h2 className={`text-xl font-bold ${darkMode ? "text-white" : "text-slate-800"}`}>Resumo Diário</h2>
                         <div className="flex items-center gap-2">
                             {streak > 0 && (
-                                <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${streak >= 7 ? 'bg-amber-100 text-amber-600' : 'bg-orange-50 text-orange-500'}`}>
+                                <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${streak >= 7 ? (darkMode ? "bg-amber-900/50 text-amber-400" : "bg-amber-100 text-amber-600") : (darkMode ? "bg-orange-900/50 text-orange-400" : "bg-orange-50 text-orange-500")}`}>
                                     🔥 {streak} {streak === 1 ? 'dia' : 'dias'}
                                 </span>
                             )}
@@ -758,9 +846,9 @@
                                 <span className="text-[10px] text-brand-rose font-medium">Meta: {(user.waterTarget/1000).toFixed(1)}L</span>
                             </div>
                             <div className="flex items-center gap-2 mt-2">
-                                <button onClick={() => updateLog('water', Math.max(0, log.water - 250))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 active:scale-90 transition-transform">-</button>
-                                <div className="flex-1 text-center font-bold text-blue-500 text-lg">{log.water}<span className="text-xs font-normal">ml</span></div>
-                                <button onClick={() => updateLog('water', log.water + 250)} className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 active:scale-90 transition-transform">+</button>
+                                <button onClick={() => updateLog('water', Math.max(0, log.water - 250))} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold active:scale-90 transition-transform ${darkMode ? 'bg-slate-600 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>-</button>
+                                <div className="flex-1 text-center font-bold text-blue-400 text-lg">{log.water}<span className="text-xs font-normal">ml</span></div>
+                                <button onClick={() => updateLog('water', log.water + 250)} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold active:scale-90 transition-transform ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>+</button>
                             </div>
                         </div>
                     </div>
@@ -772,15 +860,15 @@
                             <span className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-600 font-medium">Meta: {user.fastingHours}h</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Início (Última Refeição)</label>
-                                <input type="time" value={log.fastingStart} onChange={e => updateLog('fastingStart', e.target.value)} 
-                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
+                            <div className={`p-3 rounded-xl border ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-100'}`}>
+                                <label className={`text-[10px] uppercase font-bold block mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Início (Última Refeição)</label>
+                                <input type="time" value={log.fastingStart} onChange={e => updateLog('fastingStart', e.target.value)}
+                                    className={`w-full bg-transparent font-bold text-lg outline-none ${darkMode ? 'text-slate-100' : 'text-slate-700'}`} />
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Fim (Quebra do Jejum)</label>
-                                <input type="time" value={log.fastingEnd} onChange={e => updateLog('fastingEnd', e.target.value)} 
-                                    className="w-full bg-transparent font-bold text-lg outline-none text-slate-700" />
+                            <div className={`p-3 rounded-xl border ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-100'}`}>
+                                <label className={`text-[10px] uppercase font-bold block mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Fim (Quebra do Jejum)</label>
+                                <input type="time" value={log.fastingEnd} onChange={e => updateLog('fastingEnd', e.target.value)}
+                                    className={`w-full bg-transparent font-bold text-lg outline-none ${darkMode ? 'text-slate-100' : 'text-slate-700'}`} />
                             </div>
                         </div>
                     </div>
@@ -812,7 +900,7 @@
                     <div className="glass-card p-5 rounded-3xl">
                         <h3 className="font-bold mb-2 text-sm">Notas e Percepções</h3>
                         <textarea rows="3" placeholder="Senti mais facilidade hoje? Tive dor de cabeça? Como me sinto com meu corpo?" value={log.notes} onChange={e => updateLog('notes', e.target.value)}
-                            className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-brand-rose resize-none transition-all"></textarea>
+                            className={`w-full border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-brand-rose resize-none transition-all ${darkMode ? "bg-slate-700 text-slate-200 placeholder-slate-500" : "bg-slate-50 text-slate-700"}`}></textarea>
                     </div>
                 </div>
             );
@@ -1464,7 +1552,7 @@
             return (
                 <div>
                     <div className="flex justify-between text-sm mb-1">
-                        <span className="flex gap-2 items-center text-slate-600 font-medium"><span className="text-lg">{icon}</span> {label}</span>
+                        <span className="flex gap-2 items-center text-slate-500 dark:text-slate-300 font-medium"><span className="text-lg">{icon}</span> {label}</span>
                         <span className={`font-bold ${colorClass}`}>{value}/10</span>
                     </div>
                     <input type="range" min="1" max="10" value={value} onChange={e => onChange(e.target.value)} />
@@ -1474,11 +1562,133 @@
 
         function CheckItem({ label, checked, onClick }) {
             return (
-                <div onClick={onClick} className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer active:scale-95 transition-all ${checked ? 'bg-slate-50 border-transparent' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <div onClick={onClick} className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer active:scale-95 transition-all ${checked ? 'dark:bg-slate-700 bg-slate-50 border-transparent' : 'dark:bg-slate-700 dark:border-slate-600 bg-white border-slate-100 shadow-sm'}`}>
                     <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0 ${checked ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-transparent'}`}>
                         <Icon.Check />
                     </div>
-                    <span className={`text-[13px] font-medium leading-snug ${checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{label}</span>
+                    <span className={`text-[13px] font-medium leading-snug ${checked ? 'text-slate-400 line-through' : 'dark:text-slate-200 text-slate-700'}`}>{label}</span>
+                </div>
+            );
+        }
+
+
+        // Painel de Configurações de Notificação
+        function NotifSettingsPanel({ settings, setSettings, onClose, darkMode }) {
+            const [permStatus, setPermStatus] = useState(
+                "Notification" in window ? Notification.permission : 'unsupported'
+            );
+
+            const requestPermission = async () => {
+                if (!("Notification" in window)) return;
+                const result = await Notification.requestPermission();
+                setPermStatus(result);
+            };
+
+            const update = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
+
+            const bg = darkMode ? 'bg-slate-800' : 'bg-white';
+            const text = darkMode ? 'text-white' : 'text-slate-900';
+            const sub = darkMode ? 'text-slate-400' : 'text-slate-500';
+            const card = darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-100';
+
+            const ToggleRow = ({ label, desc, enabled, onToggle, timeKey, timeVal }) => (
+                <div className={`rounded-2xl border p-4 ${card}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <div>
+                            <p className={`font-semibold text-sm ${text}`}>{label}</p>
+                            <p className={`text-xs ${sub}`}>{desc}</p>
+                        </div>
+                        <div onClick={onToggle} className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${enabled ? 'bg-brand-rose' : darkMode ? 'bg-slate-600' : 'bg-slate-200'}`}>
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                        </div>
+                    </div>
+                    {enabled && timeKey && (
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs ${sub}`}>Horário:</span>
+                            <input type="time" value={timeVal}
+                                onChange={e => update(timeKey, e.target.value)}
+                                className={`text-sm font-bold bg-transparent outline-none border-b ${darkMode ? 'border-slate-500 text-slate-200' : 'border-slate-300 text-slate-700'}`} />
+                        </div>
+                    )}
+                </div>
+            );
+
+            return (
+                <div className="fixed inset-0 z-[998] flex items-end justify-center" onClick={onClose}>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                    <div className={`relative w-full max-w-md rounded-t-3xl p-6 pb-10 shadow-2xl ${bg} max-h-[85vh] overflow-y-auto`}
+                        onClick={e => e.stopPropagation()}>
+
+                        {/* Handle bar */}
+                        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-5" />
+
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className={`text-xl font-bold ${text}`}>⚙️ Notificações</h2>
+                            <button onClick={onClose} className={`w-8 h-8 rounded-full flex items-center justify-center ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>✕</button>
+                        </div>
+
+                        {/* Permission status */}
+                        {permStatus !== 'granted' && (
+                            <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                                {permStatus === 'unsupported' ? (
+                                    <p className="text-amber-700 text-sm font-medium">⚠️ Seu navegador não suporta notificações.</p>
+                                ) : permStatus === 'denied' ? (
+                                    <p className="text-amber-700 text-sm font-medium">🔒 Notificações bloqueadas. Habilite nas configurações do navegador e recarregue o app.</p>
+                                ) : (
+                                    <div>
+                                        <p className="text-amber-700 text-sm font-medium mb-2">📲 Ative as notificações para receber seus lembretes!</p>
+                                        <p className="text-amber-600 text-xs mb-3">No iPhone: o app precisa estar instalado na tela inicial para funcionar.</p>
+                                        <button onClick={requestPermission}
+                                            className="w-full py-2.5 bg-gradient-to-r from-brand-rose to-brand-lavender text-white rounded-xl font-bold text-sm">
+                                            Ativar Notificações
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {permStatus === 'granted' && (
+                            <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+                                <p className="text-emerald-700 text-sm font-semibold">✅ Notificações ativas!</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            <ToggleRow
+                                label="⏱️ Lembrete de Jejum"
+                                desc="Avisa na hora certa de iniciar seu jejum"
+                                enabled={settings.jejumLembrete}
+                                onToggle={() => update('jejumLembrete', !settings.jejumLembrete)}
+                                timeKey="jejumHorario"
+                                timeVal={settings.jejumHorario}
+                            />
+                            <ToggleRow
+                                label="💧 Lembrete de Água"
+                                desc="Não esqueça de bater sua meta de hidratação"
+                                enabled={settings.aguaLembrete}
+                                onToggle={() => update('aguaLembrete', !settings.aguaLembrete)}
+                                timeKey="aguaHorario"
+                                timeVal={settings.aguaHorario}
+                            />
+                            <ToggleRow
+                                label="⚖️ Pesagem Matinal"
+                                desc="Lembrete para registrar seu peso ao acordar"
+                                enabled={settings.pesagemLembrete}
+                                onToggle={() => update('pesagemLembrete', !settings.pesagemLembrete)}
+                                timeKey="pesagemHorario"
+                                timeVal={settings.pesagemHorario}
+                            />
+                            <ToggleRow
+                                label="🔥 Marcos do Jejum"
+                                desc="Avisos nas horas 4h, 8h, 12h e 16h de jejum"
+                                enabled={settings.marcosJejum}
+                                onToggle={() => update('marcosJejum', !settings.marcosJejum)}
+                            />
+                        </div>
+
+                        <p className={`text-center text-xs mt-5 ${sub}`}>
+                            Os lembretes são agendados localmente no seu dispositivo.
+                        </p>
+                    </div>
                 </div>
             );
         }
